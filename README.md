@@ -24,25 +24,32 @@ android/        安卓工程（Kotlin）
   core/         协议层：发现 / 握手加密 / 数据通道
   app/          界面层：五屏 + 底部导航
 port-spec/      逐字节协议规格（发现 / 握手加密 / 数据通道）
-plan/           设计稿、HTML 原型、Windows 版源码参考
 ```
 
-Windows 版（Rust 实现）的源码放在 `plan/HiShare-windows/`，作为协议实现的参照，
-本仓库的 `android/core` 与它逐字段对齐。
+安卓端的协议层以 Windows 版 HiShare（Rust 实现）的协议为蓝本移植而来，
+`android/core` 与之逐字段对齐；本仓库只分发安卓端代码。
+
 ---
 
 ## 快速开始
 
+环境要求：JDK 17、Android SDK platform 34 + build-tools 34.0.0、Gradle 8.7（wrapper 自动下载）。
+
 ```bash
-source /opt/team/tool-deps/scripts/env.sh   # 工具链统一在团队公共目录 /opt/team/tool-deps
-cd android && bash setup-env.sh              # 首次：补齐 JDK 17 + Android SDK 34（国内镜像）
-./gradlew :app:assembleDebug                 # 产物 app/build/outputs/apk/debug/app-debug.apk
-./gradlew :app:assembleRelease               # 产物 app/build/outputs/apk/release/app-release.apk（自动用团队密钥签名）
-./gradlew :core:testDebugUnitTest            # 密码学 / 协议单元测试
+export JAVA_HOME=<你的 JDK 17 目录>
+export ANDROID_HOME=<你的 Android SDK 目录>
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
+
+cd android
+./gradlew :app:assembleDebug      # 调试包 app/build/outputs/apk/debug/app-debug.apk
+./gradlew :app:assembleRelease    # 正式包 app/build/outputs/apk/release/app-release.apk
+./gradlew :core:testDebugUnitTest # 密码学 / 协议单元测试
 ```
 
-> release 签名密钥在团队目录 `/opt/team/keys/hishare/`，不随仓库分发；
-> `app/build.gradle.kts` 找不到密钥时会退化成未签名包，不会中断构建。
+首次构建需要联网拉取 Gradle 与 Maven 依赖；工程已配置国内镜像加速。
+正式包签名参数通过 `-Phishare.keystore=/path/to/keystore.properties` 或环境变量
+`HISHARE_KEYSTORE_PROPERTIES` 指定，不配置则产出未签名包。详见
+[`android/构建说明.md`](android/构建说明.md)。
 
 安装后打开 App，首页「开启快传」打开即可对外广播。设备名、接收目录在设置页改。
 
@@ -75,7 +82,7 @@ CON 包回 4 字节 ACK。组播锁由前台服务持有，界面上的「可被
 |---|---|
 | 装上就用 | 本文件 + [`android/使用说明.md`](android/使用说明.md) |
 | 自己构建 | [`android/构建说明.md`](android/构建说明.md) |
-| 改协议 | [`port-spec/`](port-spec/) + `plan/HiShare-windows/src/src` |
+| 改协议 | [`port-spec/`](port-spec/) |
 
 ---
 

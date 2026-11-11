@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 13+ 主题图标（monochrome）剪影层。
+  几何按 plan/图标.jpeg 的画面手工重绘：外圈光环 + 云朵 + 两台手机 + 中间闪电与文档。
+  系统按主题色给这层整体上色，所以只保留形状、不含颜色；
+  描边统一用 #000000，实体块同样用 #000000，主题着色后呈现为单色。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 外圈光环 -->
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="2.4"
+        android:fillColor="#00000000"
+        android:pathData="M54,15 A39,39 0 1,1 53.9,15 Z" />
+
+    <!-- 云朵轮廓（只描边，内部留空，保证手机剪影清晰） -->
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="3.4"
+        android:fillColor="#00000000"
+        android:strokeLineJoin="round"
+        android:pathData="M30,79 C22,79 16.5,73.6 16.5,66.4 C16.5,59.8 21.2,54.4 27.6,53 C29.8,43.6 37.4,36.6 46.4,36.6 C54,36.6 60.6,42 62.6,49.2 C66.8,44.8 73.4,44 78.4,47.6 C83,51 85,56.4 83.4,61.4 C87.6,63.6 90,67.6 90,71.8 C90,75.8 87.8,79 84.8,79 Z" />
+
+    <!-- 左侧手机（描边） -->
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="2.6"
+        android:fillColor="#00000000"
+        android:pathData="M38.4,44.6 L48.8,44.6 A2.8,2.8 0 0,1 51.6,47.4 L51.6,73.2 A2.8,2.8 0 0,1 48.8,76 L38.4,76 A2.8,2.8 0 0,1 35.6,73.2 L35.6,47.4 A2.8,2.8 0 0,1 38.4,44.6 Z" />
+    <!-- 左手机听筒 -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M41.6,48.8 L45.6,48.8 L45.6,50.4 L41.6,50.4 Z" />
+    <!-- 左手机 Home 键 -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M43.6,71.6 m-1.5,0 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0" />
+
+    <!-- 右侧手机（描边） -->
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="2.6"
+        android:fillColor="#00000000"
+        android:pathData="M62.4,44.6 L72.8,44.6 A2.8,2.8 0 0,1 75.6,47.4 L75.6,73.2 A2.8,2.8 0 0,1 72.8,76 L62.4,76 A2.8,2.8 0 0,1 59.6,73.2 L59.6,47.4 A2.8,2.8 0 0,1 62.4,44.6 Z" />
+    <!-- 右手机听筒 -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M65.6,48.8 L69.6,48.8 L69.6,50.4 L65.6,50.4 Z" />
+    <!-- 右手机 Home 键 -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M67.6,71.6 m-1.5,0 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0" />
+
+    <!-- 中间闪电 -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M55.2,46.4 L49.6,59 L53.2,59 L50.6,69.6 L58.4,55.8 L54.2,55.8 Z" />
+
+    <!-- 传输弧线（左） -->
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="1.9"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:pathData="M48.6,52.4 A7.6,7.6 0 0,0 47.6,62.6" />
+    <!-- 传输弧线（右） -->
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="1.9"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:pathData="M59.6,52.4 A7.6,7.6 0 0,1 60.6,62.6" />
+    <!-- 传输弧线（上） -->
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="1.9"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:pathData="M49.4,48.6 A11.2,11.2 0 0,1 58.8,48.6" />
+
+    <!-- 文档卡片 -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M55.8,57.8 L62.8,57.8 A1.7,1.7 0 0,1 64.5,59.5 L64.5,68.6 A1.7,1.7 0 0,1 62.8,70.3 L55.8,70.3 A1.7,1.7 0 0,1 54.1,68.6 L54.1,59.5 A1.7,1.7 0 0,1 55.8,57.8 Z" />
+</vector>

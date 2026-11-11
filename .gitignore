@@ -19,5 +19,5 @@ android/keystore/
 .DS_Store
 *.log
 
-# ── Windows 版源码参考（独立 git 克隆，不进本仓库）──
-plan/HiShare-windows/
+# ── 本地资料（设计稿、HTML 原型、Windows 版源码参考、工作日志），不推送 ──
+/plan/
