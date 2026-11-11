@@ -1,0 +1,23 @@
+# ── Android 构建产物 ────────────────────────────────
+android/**/build/
+android/.gradle/
+android/local.properties
+android/.kotlin/
+android/.idea/
+android/*.iml
+
+# ── 本地签名密钥（团队正式密钥在 /opt/team/keys/hishare，不入库）──
+*.jks
+*.keystore
+keystore.properties
+android/keystore/
+
+# ── 构建中转目录（产物迁到最终交付目录后不留副本）──
+/dist/
+
+# ── 杂项 ────────────────────────────────────────────
+.DS_Store
+*.log
+
+# ── Windows 版源码参考（独立 git 克隆，不进本仓库）──
+plan/HiShare-windows/

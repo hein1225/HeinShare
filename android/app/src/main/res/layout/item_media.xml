@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="112dp"
+    android:layout_margin="5dp"
+    android:background="@drawable/bg_media_cell"
+    android:clickable="true"
+    android:focusable="true">
+
+    <ImageView
+        android:id="@+id/mediaThumb"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:contentDescription="@string/title_picker" />
+
+    <TextView
+        android:id="@+id/mediaCount"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="6dp"
+        android:background="@drawable/bg_blue_circle"
+        android:gravity="center"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+</FrameLayout>

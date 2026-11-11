@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.HiShare" parent="Theme.Material3.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/page_bg</item>
+        <item name="android:navigationBarColor">@color/card_bg</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
+        <item name="colorPrimary">@color/blue_600</item>
+        <item name="colorOnPrimary">@color/card_bg</item>
+        <item name="android:textColorPrimary">@color/ink_900</item>
+        <item name="android:textColorSecondary">@color/ink_500</item>
+    </style>
+
+    <!-- 通用文字 -->
+    <style name="Text.Title" parent="">
+        <item name="android:textColor">@color/ink_900</item>
+        <item name="android:textSize">28sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="PickerTab" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/ink_500</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:background">@drawable/bg_tab_selected</item>
+    </style>
+
+    <style name="Text.Body" parent="">
+        <item name="android:textColor">@color/ink_500</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+</resources>
