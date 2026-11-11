@@ -24,9 +24,18 @@ class Channel(private val socket: Socket, var label: String) {
     private val input: InputStream get() = socket.getInputStream()
     private val output: OutputStream get() = socket.getOutputStream()
 
+    /** 已从 socket 读入的总字节数（诊断用）。 */
+    var readTotal: Long = 0
+        private set
+
+    /** 已写到 socket 的总字节数（诊断用）。 */
+    var writeTotal: Long = 0
+        private set
+
     fun transmit(data: ByteArray) {
         output.write(data)
         output.flush()
+        writeTotal += data.size
     }
 
     fun close() {
@@ -55,10 +64,18 @@ class Channel(private val socket: Socket, var label: String) {
         }
     }
 
-    /** 阻塞读取直到缓冲里至少有 n 字节；超时返回 false。 */
-    private fun fill(n: Int, timeoutMs: Int): Boolean {
+    /**
+     * 阻塞读取，直到缓冲里比现在多出至少 [extra] 字节；超时返回 false。
+     *
+     * 两条铁律：
+     *  * extra 是「还需要多少」，不是「总共要多少」；
+     *  * 只往缓冲尾部追加，绝不能把已有数据丢掉——bufferPos==0 不代表缓冲是空的
+     *    （consume() 压缩过缓冲后就是「pos=0 但仍有残留」），否则大数据帧会错位。
+     */
+    private fun fill(extra: Int, timeoutMs: Int): Boolean {
+        val target = buffered() + extra
         val deadline = System.currentTimeMillis() + timeoutMs
-        while (buffered() < n) {
+        while (buffered() < target) {
             val remain = (deadline - System.currentTimeMillis()).toInt()
             if (remain <= 0) return false
             try {
@@ -74,15 +91,12 @@ class Channel(private val socket: Socket, var label: String) {
                 closed = true
                 return false
             }
-            val rest = if (bufferPos > 0) {
-                val tail = buffer.copyOfRange(bufferPos, buffer.size)
-                buffer = ByteArray(0)
-                bufferPos = 0
-                tail + tmp.copyOfRange(0, got)
-            } else {
-                tmp.copyOfRange(0, got)
-            }
-            buffer = rest
+            readTotal += got
+            val old = buffer
+            val merged = ByteArray(old.size + got)
+            System.arraycopy(old, 0, merged, 0, old.size)
+            System.arraycopy(tmp, 0, merged, old.size, got)
+            buffer = merged
         }
         return true
     }

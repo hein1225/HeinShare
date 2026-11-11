@@ -40,6 +40,9 @@ class MainActivity : AppCompatActivity() {
     private var currentTab = TAB_HOME
     private var unregister: List<() -> Unit> = emptyList()
 
+    /** 调系统文件选择器时要发给哪台设备。 */
+    private var pendingPeer: Discovery.Peer? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -48,7 +51,7 @@ class MainActivity : AppCompatActivity() {
         requestNotificationPermission()
         loadDisplayName()
 
-        deviceAdapter = DeviceAdapter { peer -> openPicker(peer) }
+        deviceAdapter = DeviceAdapter { peer -> onPeerClicked(peer) }
         binding.homePage.deviceList.layoutManager = LinearLayoutManager(this)
         binding.homePage.deviceList.adapter = deviceAdapter
 
@@ -81,6 +84,39 @@ class MainActivity : AppCompatActivity() {
         switchTab(TAB_HOME)
         refreshDevices()
         refreshStatus()
+        handleShareIntent(intent)
+    }
+
+    /** 设备被点击：优先用「别的文件管理器分享过来」的文件，否则去系统选文件。 */
+    private fun onPeerClicked(peer: Discovery.Peer) {
+        if (sharedUris.isNotEmpty()) {
+            val shared = sharedUris
+            sharedUris = ArrayList()
+            openConfirm(peer, shared)
+        } else {
+            openPicker(peer)
+        }
+    }
+
+    /** 处理「被其它文件管理器选为分享目标」的入口。 */
+    private fun handleShareIntent(data: Intent?) {
+        val uris = readSharedUris(data)
+        if (uris.isEmpty()) return
+        sharedUris = uris
+        Toast.makeText(
+            this,
+            getString(R.string.share_incoming, uris.size),
+            Toast.LENGTH_LONG
+        ).show()
+        // 已经选好了就直接问设备，没选就等用户在列表里点
+        val peers = ShareHub.peers.filter { it.accepts }
+        if (peers.size == 1) openConfirm(peers[0], uris)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleShareIntent(intent)
     }
 
     override fun onResume() {
@@ -286,14 +322,88 @@ class MainActivity : AppCompatActivity() {
 
     // ------------------------------------------------------------ 交互
 
+    /**
+     * 选文件 → 调系统默认的文件管理器（ACTION_OPEN_DOCUMENT），不再自建选文件页。
+     *
+     * 选完回到本 App，再进「待发送文件确认」页。
+     */
     private fun openPicker(peer: Discovery.Peer?) {
-        val intent = Intent(this, PickerActivity::class.java)
-        peer?.let {
-            intent.putExtra("host", it.host)
-            intent.putExtra("port", it.port)
-            intent.putExtra("name", it.name)
+        pendingPeer = peer
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
         }
+        try {
+            startActivityForResult(intent, REQ_FILES)
+        } catch (_: Exception) {
+            Toast.makeText(this, "系统没有可用的文件选择器", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** 从别的文件管理器分享过来的文件（ACTION_SEND / SEND_MULTIPLE），用过一次就清空。 */
+    private var sharedUris: ArrayList<Uri> = ArrayList()
+
+    private fun readSharedUris(data: Intent?): ArrayList<Uri> {
+        val out = ArrayList<Uri>()
+        if (data == null) return out
+        if (data.action == Intent.ACTION_SEND) {
+            @Suppress("DEPRECATION")
+            data.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)?.let { out.add(it) }
+        } else if (data.action == Intent.ACTION_SEND_MULTIPLE) {
+            @Suppress("DEPRECATION")
+            data.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)?.let { out.addAll(it) }
+        }
+        return out
+    }
+
+    /** 收集系统选择器返回的 Uri（单个 / 多个都要）。 */
+    private fun collectUris(data: Intent?): ArrayList<Uri> {
+        val out = ArrayList<Uri>()
+        data?.data?.let { out.add(it) }
+        @Suppress("DEPRECATION")
+        data?.clipData?.let { clip ->
+            for (i in 0 until clip.itemCount) out.add(clip.getItemAt(i).uri)
+        }
+        return out
+    }
+
+    /** 带文件进入「待发送文件确认」页。 */
+    private fun openConfirm(peer: Discovery.Peer, uris: List<Uri>) {
+        if (uris.isEmpty()) {
+            Toast.makeText(this, "没有选择文件", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val intent = Intent(this, SendActivity::class.java)
+        intent.putStringArrayListExtra("uris", ArrayList(uris.map { it.toString() }))
+        intent.putStringArrayListExtra(
+            "names",
+            ArrayList(uris.map { MediaStoreRepo.queryName(this, it) })
+        )
+        intent.putStringArrayListExtra(
+            "sizes",
+            ArrayList(uris.map { MediaStoreRepo.querySize(this, it).toString() })
+        )
+        intent.putExtra("host", peer.host)
+        intent.putExtra("port", peer.port)
+        intent.putExtra("name", peer.name)
         startActivity(intent)
+    }
+
+    /** 没有指定设备时（快捷入口），先让用户挑一台。 */
+    private fun chooseDeviceThen(uris: List<Uri>) {
+        val peers = ShareHub.peers.filter { it.accepts }
+        if (peers.isEmpty()) {
+            Toast.makeText(this, "附近没有可用设备，请稍后再试", Toast.LENGTH_SHORT).show()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle("发送到")
+            .setItems(peers.map { it.name }.toTypedArray()) { _, which ->
+                openConfirm(peers[which], uris)
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     /** 从偏好里恢复设备名（首次运行给个默认）。 */
@@ -394,6 +504,21 @@ class MainActivity : AppCompatActivity() {
     @Deprecated("兼容旧版 Activity API")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == REQ_FILES) {
+            if (resultCode != RESULT_OK || data == null) return
+            val uris = collectUris(data)
+            if (uris.isEmpty()) return
+            val peer = pendingPeer
+            pendingPeer = null
+            if (peer != null) {
+                openConfirm(peer, uris)
+            } else {
+                chooseDeviceThen(uris)
+            }
+            return
+        }
+
         if (requestCode != REQ_TREE || resultCode != RESULT_OK) return
         val uri = data?.data ?: return
         try {
@@ -450,5 +575,6 @@ class MainActivity : AppCompatActivity() {
         private const val TAB_RECORDS = 1
         private const val TAB_SETTINGS = 2
         private const val REQ_TREE = 3001
+        private const val REQ_FILES = 3002
     }
 }

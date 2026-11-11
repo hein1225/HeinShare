@@ -69,6 +69,13 @@ class HiShareService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // 通知栏里的「关闭」动作：彻底停掉服务，不留后台。
+        if (intent?.action == ACTION_STOP) {
+            ShareHub.log("收到关闭指令，停止服务")
+            stopEverything()
+            stopSelf()
+            return START_NOT_STICKY
+        }
         startForeground(NOTIFICATION_ID, buildNotification())
         if (!running) {
             running = true
@@ -81,14 +88,27 @@ class HiShareService : Service() {
     }
 
     override fun onDestroy() {
+        stopEverything()
+        super.onDestroy()
+    }
+
+    /** 释放所有资源：发现套接字、监听端口、组播锁。 */
+    private fun stopEverything() {
         running = false
         ShareHub.serviceRunning = false
         unregisterNetworkCallback()
         try { discovery?.stop() } catch (_: Exception) {}
         try { server?.close() } catch (_: Exception) {}
         try { multicastLock?.release() } catch (_: Exception) {}
+        multicastLock = null
+        discovery = null
+        server = null
+        // 通知栏点「关闭」后，把 App 里的开关也置成关，退出软件不会残留后台。
+        try {
+            getSharedPreferences("hishare_prefs", MODE_PRIVATE)
+                .edit().putBoolean("hishare.enabled", false).apply()
+        } catch (_: Exception) {}
         ShareHub.log("服务已停止")
-        super.onDestroy()
     }
 
     /**
@@ -165,12 +185,22 @@ class HiShareService : Service() {
             @Suppress("DEPRECATION")
             Notification.Builder(this)
         }
+        // 通知栏常驻，并带一个「关闭」动作：点了就彻底停服务（不再留后台）。
+        val stopPending = PendingIntent.getService(
+            this, 1, Intent(this, HiShareService::class.java).setAction(ACTION_STOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         return builder
             .setContentTitle("HiShare 正在监听")
             .setContentText("可与华为设备互传文件")
             .setSmallIcon(android.R.drawable.stat_sys_upload)
             .setContentIntent(pending)
             .setOngoing(true)
+            .addAction(
+                android.R.drawable.ic_menu_close_clear_cancel,
+                "关闭",
+                stopPending
+            )
             .build()
     }
 

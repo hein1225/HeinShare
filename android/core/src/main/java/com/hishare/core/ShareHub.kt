@@ -90,6 +90,12 @@ object ShareHub {
         val line = "[${System.currentTimeMillis() % 100000}] $message"
         logs.add(line)
         while (logs.size > 500) logs.removeAt(0)
+        // 同时写进 logcat，真机上排查收发问题直接抓 `adb logcat -s HiShare`
+        try {
+            android.util.Log.i("HiShare", line)
+        } catch (_: Throwable) {
+            // 单元测试里 android.util.Log 不可用，忽略即可
+        }
         for (l in logListeners) {
             try { l(line) } catch (_: Exception) {}
         }

@@ -40,6 +40,16 @@ class CryptoVectorTest {
     }
 
     @Test
+    fun aesGcm128MatchesReference() {
+        // 数据面用的是 AES-128（取 32 字节会话密钥的前 16 字节），与 Rust 版
+        // `aes128gcm_encrypt_aad` 的 key[..16] 语义一致。
+        val v = vectors()["aes_gcm128"]!!
+        val sealed = Crypto.aesGcmEncrypt(v.b("key"), v.b("nonce"), v.b("plain"), v.b("aad"))
+        assertArrayEquals(v.b("sealed"), sealed)
+        assertArrayEquals(v.b("plain"), Crypto.aesGcmDecrypt(v.b("key"), v.b("nonce"), sealed, v.b("aad")))
+    }
+
+    @Test
     fun aesGcmWith16ByteNonceMatchesReference() {
         val v = vectors()["aes_gcm16"]!!
         val sealed = Crypto.aesGcmEncrypt(v.b("key"), v.b("nonce"), v.b("plain"))

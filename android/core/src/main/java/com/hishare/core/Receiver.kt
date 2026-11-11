@@ -4,7 +4,6 @@ import java.io.File
 import java.io.OutputStream
 import java.net.InetAddress
 import java.net.ServerSocket
-import java.util.Base64
 
 class ReceiveException(message: String) : Exception(message)
 
@@ -250,7 +249,9 @@ class Receiver(
                     val wire = fchan.tryReadDfile(if (drained == 0) 200 else 1) ?: break
                     drained++
                     progressed = true
-                    val header = Protocol.parseDfileHeader(wire)
+                    val header = try { Protocol.parseDfileHeader(wire) } catch (e: Exception) {
+                        log("[DIAG] 非法帧 前24=" + wire.copyOfRange(0, minOf(24, wire.size)).joinToString(" ") { "%02X".format(it) }); throw e }
+                    log("[DIAG] 读到 kind=${header.kind} size=${header.size} total=${wire.size} 已读=${fchan.readTotal} 头8=" + wire.copyOfRange(0,8).joinToString(" ") { "%02X".format(it) })
                     val payload = wire.copyOfRange(8, 8 + header.size)
                     when (header.kind) {
                         8 -> if (!settingsSeen) {
@@ -371,7 +372,7 @@ class Receiver(
                         ) {
                             throw ReceiveException("不支持的 byte 通道请求")
                         }
-                        val sk = Base64.getDecoder().decode(value.str("SESSION_KEY") ?: "")
+                        val sk = Bytes.base64Decode(value.str("SESSION_KEY") ?: "")
                         require(sk.size == 32) { "byte 会话密钥长度异常" }
                         byteKey = sk
                         val node = Bytes.hexLower(Crypto.sha256(deviceHash))
@@ -568,7 +569,7 @@ class Receiver(
                                 }
                                 continue
                             }
-                            val sk = Base64.getDecoder().decode(obj.str("SESSION_KEY") ?: "")
+                            val sk = Bytes.base64Decode(obj.str("SESSION_KEY") ?: "")
                             require(sk.size == 32) { "file 会话密钥长度异常" }
                             fileKey = sk
                             val listener = ServerSocket(0, 1, InetAddress.getByName(localIp))

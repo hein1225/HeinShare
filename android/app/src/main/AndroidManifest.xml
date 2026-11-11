@@ -40,17 +40,26 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- 作为其它文件管理器的「分享目标」：单文件 -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+
+            <!-- 作为其它文件管理器的「分享目标」：多文件 -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
         </activity>
 
         <activity
             android:name=".SendActivity"
             android:exported="false"
             android:label="@string/title_send" />
-
-        <activity
-            android:name=".PickerActivity"
-            android:exported="false"
-            android:label="@string/title_picker" />
 
         <activity
             android:name=".ReceiveActivity"

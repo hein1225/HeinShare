@@ -1,6 +1,5 @@
 package com.hishare.core
 
-import android.util.Base64
 import java.io.File
 import java.security.KeyFactory
 import java.security.KeyPair
@@ -52,8 +51,8 @@ class Identity(private val keyFile: File) {
                 val pubB64 = text.substringAfter("-----BEGIN PUBLIC KEY-----", "")
                     .substringBefore("-----END PUBLIC KEY-----")
                     .filter { !it.isWhitespace() }
-                val privDer = Base64.decode(privB64, Base64.DEFAULT)
-                val pubDer = Base64.decode(pubB64, Base64.DEFAULT)
+                val privDer = Bytes.base64Decode(privB64)
+                val pubDer = Bytes.base64Decode(pubB64)
                 val privateKey = KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(privDer))
                 val publicKey = Crypto.publicFromDer(pubDer)
                 return KeyPair(publicKey, privateKey)
@@ -64,10 +63,10 @@ class Identity(private val keyFile: File) {
         val pair = Crypto.generateRsa()
         val pem = buildString {
             append("-----BEGIN PRIVATE KEY-----\n")
-            append(Base64.encodeToString(pair.private.encoded, Base64.NO_WRAP))
+            append(Bytes.base64Encode(pair.private.encoded))
             append("\n-----END PRIVATE KEY-----\n")
             append("-----BEGIN PUBLIC KEY-----\n")
-            append(Base64.encodeToString(pair.public.encoded, Base64.NO_WRAP))
+            append(Bytes.base64Encode(pair.public.encoded))
             append("\n-----END PUBLIC KEY-----\n")
         }
         keyFile.parentFile?.mkdirs()

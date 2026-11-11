@@ -40,10 +40,18 @@ object Protocol {
         return Bytes.frameEncode(MODULE_OPENING, 1, 0, payload)
     }
 
+    /**
+     * opening ACK。
+     *
+     * 与 Rust 版 `receive/opening_payload.rs::build_opening_ack` 一致：
+     * 这里回给对方的 DEVICE_ID / PEER_NETWORK_ID 必须是 **小写** 十六进制，
+     * 而 opening 请求里用的是大写（identity_v2 = hex_upper）。大小写不一致会被对端判定非法。
+     */
     fun openingAck(identity: String): ByteArray {
+        val id = identity.lowercase()
         val body = buildString {
-            append("{\"CODE\":4,\"DEVICE_ID\":\"").append(identity)
-            append("\",\"PEER_NETWORK_ID\":\"").append(identity)
+            append("{\"CODE\":4,\"DEVICE_ID\":\"").append(id)
+            append("\",\"PEER_NETWORK_ID\":\"").append(id)
             append("\",\"API_VERSION\":2,\"PKG_NAME\":\"").append(PKG_NAME)
             append("\",\"SRC_BUS_NAME\":\"ohos.InterConnection.iShare\"")
             append(",\"DST_BUS_NAME\":\"IShareEcologyAuthSession\"")
@@ -314,7 +322,7 @@ object Protocol {
 
     /** DFile 时间戳：鸿蒙用 Unix 微秒，Apple 用开机微秒。 */
     fun dfileStamp(peerIsApple: Boolean): Long =
-        if (peerIsApple) android.os.SystemClock.elapsedRealtimeNanos() / 1000
+        if (peerIsApple) System.nanoTime() / 1000
         else System.currentTimeMillis() * 1000
 
     fun dfileSealControl(aead: Aead, key: ByteArray, packet: ByteArray): ByteArray {
@@ -525,8 +533,8 @@ object Protocol {
         for (e in entries) {
             require(e.id != 0 && e.name.isNotEmpty() && e.name.size <= 255) { "清单条目非法" }
             val unit = ByteArrayOutputStream()
+            // 单元 = id(2) + size(8 BE) + name_len(2 BE) + name，共 12 字节头
             Bytes.putU16be(unit, e.id)
-            Bytes.putU32be(unit, 0)
             for (i in 7 downTo 0) unit.write(((e.size ushr (i * 8)) and 0xFF).toInt())
             Bytes.putU16be(unit, e.name.size)
             unit.write(e.name)

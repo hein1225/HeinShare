@@ -132,7 +132,7 @@ object Crypto {
 
     /** AES-GCM 加密，输出密文 + 16 字节 tag。支持 12 / 16 字节 IV，可带 AAD。 */
     fun aesGcmEncrypt(key: ByteArray, nonce: ByteArray, plain: ByteArray, aad: ByteArray = ByteArray(0)): ByteArray {
-        require(key.size == 32) { "AES-256-GCM 需要 32 字节密钥" }
+        require(key.size == 16 || key.size == 32) { "AES-GCM 需要 16 字节（128 位）或 32 字节（256 位）密钥" }
         val h = aesBlock(key, ByteArray(16))
         val hHi = Bytes.u64be(h, 0)
         val hLo = Bytes.u64be(h, 8)
@@ -168,6 +168,7 @@ object Crypto {
 
     /** AES-GCM 解密，校验 tag。 */
     fun aesGcmDecrypt(key: ByteArray, nonce: ByteArray, sealed: ByteArray, aad: ByteArray = ByteArray(0)): ByteArray? {
+        require(key.size == 16 || key.size == 32) { "AES-GCM 需要 16 字节（128 位）或 32 字节（256 位）密钥" }
         if (sealed.size < 16) return null
         val ct = sealed.copyOfRange(0, sealed.size - 16)
         val tag = sealed.copyOfRange(sealed.size - 16, sealed.size)

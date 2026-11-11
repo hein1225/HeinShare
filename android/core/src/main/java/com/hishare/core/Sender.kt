@@ -2,7 +2,6 @@ package com.hishare.core
 
 import java.io.InputStream
 import java.net.ServerSocket
-import java.util.Base64
 
 /** 待发送的文件（可以是 SAF 的 Uri，也可以是普通文件）。 */
 interface FileSource {
@@ -83,7 +82,8 @@ class Sender(
         val capBytes = if (isTablet) {
             Protocol.capabilitiesPhone(deviceHash)
         } else {
-            Protocol.localCapabilityFrame(deviceHash, "10.0", "ARM64")
+            // machine 与 Rust 版 outbound/session.rs 的 MACHINE 常量保持一致（"AMD64"）
+            Protocol.localCapabilityFrame(deviceHash, "10.0", "AMD64")
         }
         control.transmit(capBytes)
 
@@ -202,7 +202,10 @@ class Sender(
                                         sendEncrypted(control, deviceHash, key, logicalAddr(hs.local), sequence++)
                                         exchangeSent = true
                                     }
-                                    if (hs.isTablet && !metaSent) {
+                                    if (!metaSent) {
+                                        // 主动上报 META_INFO：iPad 档必须我们先，鸿蒙档则是
+                                        // 「谁先都行」——先发一次可以让对端立刻回 META_ACK，
+                                        // 后面收到对端的 META 时还会再回一次（与 Rust 版行为一致）。
                                         sendMeta(control, key, displayName, hs.nodeId, hs, sequence, null)
                                         sequence += 2
                                         metaSent = true
@@ -579,7 +582,7 @@ class Sender(
         val payload = "{\"CODE\":1,\"API_VERSION\":2,\"BUS_NAME\":\"IShareReceiverBytesSession\"," +
             "\"CLIENT_BUS_NAME\":\"$clientBus\",\"PKG_NAME\":\"${Protocol.PKG_NAME}\",\"MTU_SIZE\":4194304," +
             "\"TRANS_CAPABILITY\":$tc,\"ROUTE_TYPE\":2,\"DEVICE_ID\":\"$deviceId\",\"BUSINESS_TYPE\":$bt," +
-            "\"TRANS_FLAGS\":2,\"SESSION_KEY\":\"${Base64.getEncoder().encodeToString(byteKey)}\"}"
+            "\"TRANS_FLAGS\":2,\"SESSION_KEY\":\"${Bytes.base64Encode(byteKey)}\"}"
         val body = payload.toByteArray(Charsets.UTF_8) + 0
         val frame = Protocol.sealChannelFrame(
             sessionKey,
@@ -598,7 +601,7 @@ class Sender(
         fileKey: ByteArray,
         isApple: Boolean
     ): ByteArray {
-        val key = Base64.getEncoder().encodeToString(fileKey)
+        val key = Bytes.base64Encode(fileKey)
         val deviceId = if (isApple) nodeId else identity
         val payload = if (isApple) {
             "{\"MY_CHANNEL_ID\":2,\"MY_IP\":\"$local\",\"DEVICE_ID\":\"$deviceId\",\"CODE\":1538,\"API_VERSION\":2," +

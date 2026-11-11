@@ -22,6 +22,88 @@ object Bytes {
 
     fun hexLower(data: ByteArray): String = hex(data, HEX_LOWER)
 
+    // ------------------------------------------------------------- Base64
+    //
+    // 自己实现而不是用 android.util.Base64 / java.util.Base64：
+    //  * android.util.Base64 在 JVM 单元测试里不可用；
+    //  * java.util.Base64 要 API 26，而本项目 minSdk 是 24。
+
+    private const val B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+    fun base64Encode(data: ByteArray): String {
+        val sb = StringBuilder((data.size + 2) / 3 * 4)
+        var i = 0
+        while (i + 2 < data.size) {
+            val n = ((data[i].toInt() and 0xFF) shl 16) or
+                ((data[i + 1].toInt() and 0xFF) shl 8) or
+                (data[i + 2].toInt() and 0xFF)
+            sb.append(B64[(n ushr 18) and 0x3F])
+            sb.append(B64[(n ushr 12) and 0x3F])
+            sb.append(B64[(n ushr 6) and 0x3F])
+            sb.append(B64[n and 0x3F])
+            i += 3
+        }
+        when (data.size - i) {
+            1 -> {
+                val n = (data[i].toInt() and 0xFF) shl 16
+                sb.append(B64[(n ushr 18) and 0x3F])
+                sb.append(B64[(n ushr 12) and 0x3F])
+                sb.append("==")
+            }
+            2 -> {
+                val n = ((data[i].toInt() and 0xFF) shl 16) or ((data[i + 1].toInt() and 0xFF) shl 8)
+                sb.append(B64[(n ushr 18) and 0x3F])
+                sb.append(B64[(n ushr 12) and 0x3F])
+                sb.append(B64[(n ushr 6) and 0x3F])
+                sb.append('=')
+            }
+        }
+        return sb.toString()
+    }
+
+    /** 标准 Base64 解码，忽略空白与换行；遇到非法字符抛异常。 */
+    fun base64Decode(text: String): ByteArray {
+        val clean = StringBuilder(text.length)
+        for (c in text) if (!c.isWhitespace()) clean.append(c)
+        val s = clean.toString()
+        require(s.length % 4 == 0) { "Base64 长度非法" }
+        val out = ByteArray(s.length / 4 * 3)
+        var o = 0
+        var i = 0
+        while (i < s.length) {
+            var acc = 0
+            var bits = 0
+            var pad = 0
+            for (j in 0 until 4) {
+                val c = s[i + j]
+                if (c == '=') {
+                    pad++
+                    acc = acc shl 6
+                } else {
+                    val v = B64.indexOf(c)
+                    require(v >= 0) { "Base64 含非法字符：$c" }
+                    acc = (acc shl 6) or v
+                    bits += 6
+                }
+            }
+            i += 4
+            when (bits) {
+                24 -> {
+                    out[o++] = (acc ushr 16).toByte()
+                    out[o++] = (acc ushr 8).toByte()
+                    out[o++] = acc.toByte()
+                }
+                18 -> {
+                    out[o++] = (acc ushr 16).toByte()
+                    out[o++] = (acc ushr 8).toByte()
+                }
+                12 -> out[o++] = (acc ushr 16).toByte()
+                else -> require(pad >= 2) { "Base64 填充非法" }
+            }
+        }
+        return if (o == out.size) out else out.copyOf(o)
+    }
+
     private fun hex(data: ByteArray, table: CharArray): String {
         val sb = StringBuilder(data.size * 2)
         for (b in data) {
