@@ -37,17 +37,28 @@ jobs:
       - name: 设置 Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: 设置 Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: 缓存 Gradle 依赖
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-
+      # ubuntu-latest 镜像已预装 Android SDK；android-actions/setup-android@v3 会调用
+      # 已下线的 `sdkmanager tools` 导致失败，故改为按需用 sdkmanager 补装缺失组件。
+      - name: 准备 Android SDK 组件
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | tail -n 1)"
+          if [ -z "$SDKMANAGER" ]; then
+            echo "runner 上没有 sdkmanager"; exit 1
+          fi
+          chmod +x "$SDKMANAGER"
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
+          NEED=""
+          if ! ls "$ANDROID_HOME/platforms"/android-34 >/dev/null 2>&1; then NEED="$NEED platforms;android-34"; fi
+          if ! ls "$ANDROID_HOME/build-tools"/34.0.0 >/dev/null 2>&1; then NEED="$NEED build-tools;34.0.0"; fi
+          if [ -n "$NEED" ]; then
+            echo "安装缺失组件:$NEED"
+            yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+            "$SDKMANAGER" $NEED
+          else
+            echo "SDK 组件齐备"
+          fi
+          ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools"
 
       - name: 还原签名密钥
         env:
@@ -82,6 +93,8 @@ jobs:
           if [ -f "$RUNNER_TEMP/ks/keystore.properties" ]; then
             KS_ARGS="-Pheinshare.keystore=$RUNNER_TEMP/ks/keystore.properties"
           fi
+          # 海外 runner 改用 Gradle 官方发行源，避免国内镜像不可达
+          sed -i 's#^distributionUrl=.*#distributionUrl=https\\://services.gradle.org/distributions/gradle-8.7-bin.zip#' gradle/wrapper/gradle-wrapper.properties
           chmod +x gradlew
           ./gradlew --no-daemon clean assembleRelease \
             -PversionName="$TAG" \
