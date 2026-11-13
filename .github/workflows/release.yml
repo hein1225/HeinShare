@@ -147,7 +147,7 @@ jobs:
           printf '%s\n' "${{ steps.notes.outputs.body }}" > "$NOTES_FILE"
           # tag 不带 v：直接用输入值
           gh release create "$TAG" \
-            --title "海因分享" \
+            --title "HeinShare-${TAG}" \
             --notes-file "$NOTES_FILE" \
             --repo hein1225/HeinShare \
             "dist/HeinShare-android-${TAG}.apk"
