@@ -46,7 +46,7 @@ jobs:
           if [ -z "$SDKMANAGER" ]; then
             echo "runner 上没有 sdkmanager"; exit 1
           fi
-          chmod +x "$SDKMANAGER"
+          chmod +x "$SDKMANAGER" 2>/dev/null || true
           export PATH="$ANDROID_HOME/platform-tools:$PATH"
           NEED=""
           if ! ls "$ANDROID_HOME/platforms"/android-34 >/dev/null 2>&1; then NEED="$NEED platforms;android-34"; fi
