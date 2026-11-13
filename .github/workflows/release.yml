@@ -96,9 +96,18 @@ jobs:
           # 海外 runner 改用 Gradle 官方发行源，避免国内镜像不可达
           sed -i 's#^distributionUrl=.*#distributionUrl=https\\://services.gradle.org/distributions/gradle-8.7-bin.zip#' gradle/wrapper/gradle-wrapper.properties
           chmod +x gradlew
+          # 版本信息唯一数据源：android/version.properties
+          # versionCode 是递增计数器，只在版本号升级时 +1，不使用时间戳
+          VNAME=$(grep -E '^versionName=' version.properties | cut -d= -f2- | tr -d ' \r')
+          VCODE=$(grep -E '^versionCode=' version.properties | cut -d= -f2- | tr -d ' \r')
+          if [ "$VNAME" != "$TAG" ]; then
+            echo "::error::version.properties 的 versionName($VNAME) 与发布标签($TAG) 不一致，请先更新版本号并递增 versionCode"
+            exit 1
+          fi
+          echo "发布版本 $VNAME，versionCode=$VCODE"
           ./gradlew --no-daemon clean assembleRelease \
-            -PversionName="$TAG" \
-            -PversionCode=$(date +%s) \
+            -PversionName="$VNAME" \
+            -PversionCode="$VCODE" \
             $KS_ARGS
 
       - name: 收集 APK
@@ -146,8 +155,20 @@ jobs:
           NOTES_FILE="$RUNNER_TEMP/notes.md"
           printf '%s\n' "${{ steps.notes.outputs.body }}" > "$NOTES_FILE"
           # tag 不带 v：直接用输入值
-          gh release create "$TAG" \
-            --title "HeinShare-${TAG}" \
-            --notes-file "$NOTES_FILE" \
-            --repo hein1225/HeinShare \
-            "dist/HeinShare-android-${TAG}.apk"
+          # Release 已存在时改为覆盖上传，保证同名 tag 的资产能被新构建替换
+          if gh release view "$TAG" --repo hein1225/HeinShare >/dev/null 2>&1; then
+            gh release upload "$TAG" \
+              "dist/HeinShare-android-${TAG}.apk" \
+              --clobber \
+              --repo hein1225/HeinShare
+            gh release edit "$TAG" \
+              --title "HeinShare-${TAG}" \
+              --notes-file "$NOTES_FILE" \
+              --repo hein1225/HeinShare
+          else
+            gh release create "$TAG" \
+              --title "HeinShare-${TAG}" \
+              --notes-file "$NOTES_FILE" \
+              --repo hein1225/HeinShare \
+              "dist/HeinShare-android-${TAG}.apk"
+          fi

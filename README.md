@@ -183,8 +183,12 @@ cd android
 
 首次构建需要联网拉取 Gradle 与 Maven 依赖；工程已配置国内镜像加速。
 正式包签名参数通过 `-Pheinshare.keystore=/path/to/keystore.properties` 或环境变量
-`HISHARE_KEYSTORE_PROPERTIES` 指定，不配置则产出未签名包。版本号可用
-`-PversionName=1.0.0` 覆盖（默认 1.0.0，不带 `v`）。详见
+`HISHARE_KEYSTORE_PROPERTIES` 指定，不配置则产出未签名包。版本号与
+`versionCode` 的唯一数据源是 [`android/version.properties`](android/version.properties)：
+`versionName` 是用户可见版本号（不带 `v`），`versionCode` 是整数递增计数器，
+**只在发布新版本号时 +1**（`1.0.0` → `1`，`1.1.0` → `2`），不使用时间戳，
+这样线上下载的包与本地构建的包可以互相覆盖安装。临时覆盖用
+`-PversionName=1.0.0 -PversionCode=1`。详见
 [`android/构建说明.md`](android/构建说明.md)。
 
 安装后打开 App，首页「开启快传」打开即可对外广播。设备名、接收目录在设置页改。
@@ -193,7 +197,9 @@ cd android
 
 仓库内置 GitHub Actions 工作流 `.github/workflows/release.yml`：
 
-1. 在 **Actions → Build & Release → Run workflow** 里填 **tag 版本号**（不带 `v`，例如 `1.0.0`）
+1. 在 **Actions → Build & Release → Run workflow** 里填 **tag 版本号**（不带 `v`，例如 `1.0.0`）；
+   工作流会校验它与 `android/version.properties` 的 `versionName` 一致，不一致直接失败，
+   避免漏改 `versionCode` 导致新包无法覆盖安装
 2. 可选填更新日志；留空则**按本次提交自动生成**
 3. 工作流构建 release APK（签名密钥通过 Secrets `KEYSTORE_BASE64` / `KEYSTORE_PASSWORD` /
    `KEY_ALIAS` / `KEY_PASSWORD` 提供），随后创建 **Release 名为 `HeinShare-<tag>`**（例如

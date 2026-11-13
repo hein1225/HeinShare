@@ -23,6 +23,12 @@ val keystoreAvailable = keystorePropsFile.exists() && run {
     keystoreProps.getProperty("storeFile")?.let { file(it).exists() } ?: false
 }
 
+// 版本信息：android/version.properties（唯一数据源）
+val versionProps = Properties().apply {
+    val f = rootProject.file("version.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+
 android {
     namespace = "com.heinshare.app"
     compileSdk = 34
@@ -31,9 +37,13 @@ android {
         applicationId = "com.heinshare.app"
         minSdk = 24
         targetSdk = 34
-        // 版本号固定 1.0.0，不带 v 前缀；CI 发布时用 -PversionName= 覆盖。
-        versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
-        versionName = (project.findProperty("versionName") as String?) ?: "1.0.0"
+        // 版本号与 versionCode 的唯一数据源：android/version.properties
+        // versionCode 是整数递增计数器，只在发布新版本号时 +1，不使用时间戳。
+        // 仍可用 -PversionName= / -PversionCode= 临时覆盖（CI 用）。
+        versionName = (project.findProperty("versionName") as String?) ?: versionProps.getProperty("versionName") ?: "1.0.0"
+        versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull()
+            ?: versionProps.getProperty("versionCode")?.trim()?.toIntOrNull()
+            ?: 1
     }
 
     signingConfigs {
