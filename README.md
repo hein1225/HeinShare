@@ -12,6 +12,11 @@
 不需要装助手客户端、不需要登录、不需要云盘中转 —— 走的是局域网直连，打开手机的「华为分享」，
 本机就能出现在可发送目标列表里。
 
+> **Windows 端可以直接使用原作者的软件**：Windows 电脑侧运行原作者
+> HiShare（Rust 版）即可与安卓端互传，无需本仓库另出 Windows 包。
+> 原项目仓库：<https://github.com/SoulLinkIly/HiShare>
+> 本仓库只分发安卓端代码。
+
 <p align="center">
   <img src="docs/screenshots/01-首页.png" width="240" alt="首页">
   <img src="docs/screenshots/03-传输记录.png" width="240" alt="传输记录">
@@ -28,7 +33,7 @@
 |---|---|
 | **安卓 → 华为设备** | 在 App 内选好文件、确认清单后一次发出；华为手机端会弹出「接收文件」提示 |
 | **华为设备 → 安卓** | 华为手机「华为分享」里扫到本机、选中本机发送，本机弹窗确认后接收，自动落盘 |
-| **安卓 → Windows HiShare** | Windows 电脑上跑 `hishare.exe` 监听，两端同为一套协议，直接互传 |
+| **安卓 → Windows HiShare** | Windows 电脑上跑原作者的 `hishare.exe` 监听，两端同为一套协议，直接互传 |
 | **Windows HiShare → 安卓** | 同上，Windows 端选到本机发送，本机弹窗确认后接收 |
 
 支持**单文件、多文件、整个文件夹**（保留目录结构）一次发。接收侧同样支持多文件。
@@ -191,8 +196,8 @@ cd android
 1. 在 **Actions → Build & Release → Run workflow** 里填 **tag 版本号**（不带 `v`，例如 `1.0.0`）
 2. 可选填更新日志；留空则**按本次提交自动生成**
 3. 工作流构建 release APK（签名密钥通过 Secrets `KEYSTORE_BASE64` / `KEYSTORE_PASSWORD` /
-   `KEY_ALIAS` / `KEY_PASSWORD` 提供），随后创建 **Release 名为 `海因分享`** 的发布，
-   并把 APK 作为附件上传
+   `KEY_ALIAS` / `KEY_PASSWORD` 提供），随后创建 **Release 名为 `HeinShare-<tag>`**（例如
+   `HeinShare-1.0.0`）的发布，并把 APK 作为附件上传
 
 App 的检查更新正是读这个 Release 的 tag 与 APK 附件。
 
