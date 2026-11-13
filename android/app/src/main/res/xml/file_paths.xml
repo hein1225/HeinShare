@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 应用私有目录（filesDir）与外部私有目录（getExternalFilesDir） -->
+    <files-path name="app_files" path="." />
+    <external-files-path name="app_external_files" path="." />
+    <!-- 旧版公共下载目录（API 28 及以下写入的接收文件） -->
+    <external-path name="downloads" path="Download/" />
+</paths>

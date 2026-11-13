@@ -1,0 +1,140 @@
+name: Build & Release
+
+# 手动触发：填 tag 版本号（不带 v，例如 1.0.0）。
+# 流程：构建 release APK → 打包 → 创建 GitHub Release（自动填写更新日志）→ 上传 APK。
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '发布版本号（不带 v，例如 1.0.0）'
+        required: true
+        default: '1.0.0'
+      changelog:
+        description: '更新日志（留空则自动根据本次改动生成）'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: 构建并发布
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 设置 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 设置 Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: 设置 Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 缓存 Gradle 依赖
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: 还原签名密钥
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ks"
+          if [ -n "${KEYSTORE_BASE64:-}" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/ks/release.jks"
+            cat > "$RUNNER_TEMP/ks/keystore.properties" <<EOF
+          storeFile=$RUNNER_TEMP/ks/release.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+            echo "::add-mask::${KEYSTORE_PASSWORD}"
+            echo "::add-mask::${KEY_PASSWORD}"
+          else
+            echo "未配置签名密钥，将构建未签名包"
+          fi
+
+      - name: 构建 Release APK
+        working-directory: android
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          KS_ARGS=""
+          if [ -f "$RUNNER_TEMP/ks/keystore.properties" ]; then
+            KS_ARGS="-Pheinshare.keystore=$RUNNER_TEMP/ks/keystore.properties"
+          fi
+          chmod +x gradlew
+          ./gradlew --no-daemon clean assembleRelease \
+            -PversionName="$TAG" \
+            -PversionCode=$(date +%s) \
+            $KS_ARGS
+
+      - name: 收集 APK
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          mkdir -p dist
+          APK=$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)
+          if [ -z "$APK" ]; then
+            echo "没有找到 APK"; exit 1
+          fi
+          cp "$APK" "dist/HeinShare-android-${TAG}.apk"
+          ls -l dist
+
+      - name: 生成更新日志
+        id: notes
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          INPUT="${{ inputs.changelog }}"
+          if [ -n "$INPUT" ]; then
+            echo "body<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$INPUT" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          else
+            PREV=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            if [ -n "$PREV" ]; then
+              BODY=$(git log --pretty=format:'- %s' "$PREV..HEAD" | head -n 50)
+            else
+              BODY=$(git log --pretty=format:'- %s' -n 20)
+            fi
+            echo "body<<EOF" >> "$GITHUB_OUTPUT"
+            echo "版本 $TAG" >> "$GITHUB_OUTPUT"
+            echo "" >> "$GITHUB_OUTPUT"
+            echo "$BODY" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 创建 Release 并上传 APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          NOTES_FILE="$RUNNER_TEMP/notes.md"
+          printf '%s\n' "${{ steps.notes.outputs.body }}" > "$NOTES_FILE"
+          # tag 不带 v：直接用输入值
+          gh release create "$TAG" \
+            --title "海因分享" \
+            --notes-file "$NOTES_FILE" \
+            --repo hein1225/HeinShare \
+            "dist/HeinShare-android-${TAG}.apk"

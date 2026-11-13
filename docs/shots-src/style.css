@@ -1,0 +1,103 @@
+/* Heinshare 截图用样式：严格按 android/app/src/main/res/layout/*.xml 的真实尺寸还原
+   配色取自 res/values/colors.xml，文字取自 res/values/strings.xml */
+:root{
+  --blue-700:#1556C4; --blue-600:#1F6FE0; --blue-500:#2F86F5; --blue-400:#4D9BFB;
+  --blue-100:#E3EFFC; --blue-050:#F2F7FD;
+  --ink-900:#1A2A3A; --ink-700:#2D4A66; --ink-500:#5A7490; --ink-400:#8FA4BA;
+  --line:#D9E7F7; --line-soft:#EDF3FA; --green:#2E9E5B;
+  --page-bg:#F4F8FD; --card:#FFFFFF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--page-bg); color:var(--ink-900);
+  -webkit-font-smoothing:antialiased;
+}
+/* 像素密度：Android dp -> css px，1dp = 1px（按 mdpi 近似）；截图 2x 输出 */
+.phone{
+  width:390px;height:844px;background:var(--page-bg);
+  position:relative;overflow:hidden;display:flex;flex-direction:column;
+}
+.statusbar{
+  height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 26px;font-size:14px;font-weight:600;color:var(--ink-900);background:var(--page-bg);
+}
+.statusbar .right{display:flex;align-items:center;gap:6px;font-size:12px}
+.screen{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
+.scroll{flex:1;overflow:hidden;padding:0 18px 16px;display:flex;flex-direction:column}
+
+/* ── 品牌区（partial_home_header ①） ── */
+.brand{display:flex;align-items:center;gap:14px;margin-top:14px;margin-bottom:16px}
+.brand img{width:54px;height:54px;object-fit:contain}
+.brand .t1{font-size:26px;font-weight:800;letter-spacing:.4px}
+.brand .t2{margin-top:3px;font-size:13px;color:var(--ink-500)}
+
+/* ── 开关卡（partial_home_header ②） ── */
+.hero{
+  background:linear-gradient(180deg,#E8F2FE 0%,#F3F8FE 55%,#FFFFFF 100%);
+  border:1px solid #DCEAFB;border-radius:24px;
+  padding:18px 20px;display:flex;align-items:center;gap:12px;
+  box-shadow:0 6px 18px rgba(31,111,224,.10);
+}
+.hero .art{width:104px;height:104px;flex:0 0 104px}
+.hero .txt{flex:1;min-width:0}
+.hero h3{font-size:19px;font-weight:800}
+.hero p{margin-top:3px;font-size:13px;color:var(--ink-500)}
+.pill{
+  display:inline-block;margin-top:12px;background:var(--blue-100);color:var(--blue-700);
+  padding:6px 14px;border-radius:999px;font-size:13px;font-weight:800;
+}
+.switchrow{display:flex;align-items:center;gap:10px;margin-top:12px}
+.toggle{width:64px;height:36px;border-radius:999px;background:linear-gradient(90deg,var(--blue-500),var(--blue-600));
+  position:relative;flex:0 0 64px;margin-left:auto}
+.toggle::after{content:"";position:absolute;right:3px;top:3px;width:30px;height:30px;border-radius:50%;
+  background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.hint{
+  margin-top:10px;background:#FFF7E0;border:1px solid #F5DFA0;border-radius:12px;
+  padding:10px 14px;font-size:13px;color:var(--ink-700);
+}
+
+/* ── 卡片（partial_home_lists） ── */
+.card{background:var(--card);border-radius:20px;box-shadow:0 4px 16px rgba(31,111,224,.08);
+  padding:16px 16px 8px;margin-top:14px}
+.card h2{font-size:21px;font-weight:800;display:flex;align-items:center}
+.card h2 .btn{
+  margin-left:auto;display:inline-flex;align-items:center;gap:6px;background:var(--blue-100);
+  color:var(--blue-700);padding:8px 14px;border-radius:999px;font-size:13px;font-weight:800;
+}
+.hintline{font-size:13px;color:var(--ink-500);margin-top:4px}
+.empty{font-size:13px;color:var(--ink-400);margin:10px 0 8px}
+
+/* 设备条目（item_device） */
+.item{
+  display:flex;align-items:center;gap:12px;background:#F7FBFF;border:1px solid var(--line-soft);
+  border-radius:14px;padding:12px;margin-top:10px;margin-bottom:10px;
+}
+.item .ic{width:40px;height:40px;flex:0 0 40px}
+.item .mid{flex:1;min-width:0}
+.item .nm{font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .mt{margin-top:2px;font-size:12px;color:var(--ink-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .act{background:var(--blue-100);color:var(--blue-700);padding:7px 14px;border-radius:999px;
+  font-size:13px;font-weight:800;white-space:nowrap}
+.item .act.ghost{background:#F1F5FA;color:var(--ink-500)}
+
+/* 记录条目（item_record） */
+.rec{display:flex;align-items:center;gap:14px;background:var(--card);border-radius:18px;
+  box-shadow:0 2px 10px rgba(31,111,224,.07);padding:16px;margin-top:10px}
+.rec .ic{width:38px;height:38px;flex:0 0 38px;border-radius:50%;background:var(--blue-100);
+  display:flex;align-items:center;justify-content:center}
+.rec .mid{flex:1;min-width:0}
+.rec .t{font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec .d{margin-top:3px;font-size:12px;color:var(--ink-400)}
+.badge{background:#EAF7EE;color:var(--green);font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px}
+.badge.gray{background:#F1F5FA;color:var(--ink-500)}
+
+/* ── 底部导航（activity_main） ── */
+.tabbar{flex:0 0 72px;background:var(--card);border-top:1px solid #EAF0F7;display:flex}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  color:var(--ink-400);font-size:12px;font-weight:700;position:relative}
+.tab.active{color:var(--blue-600)}
+.tab .dot{position:absolute;top:14px;right:calc(50% - 18px);width:8px;height:8px;border-radius:50%;background:var(--blue-500)}
+.tab svg{width:26px;height:26px}
+.homebar{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;
+  border-radius:99px;background:#111;opacity:.85}

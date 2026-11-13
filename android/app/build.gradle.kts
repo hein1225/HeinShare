@@ -7,13 +7,13 @@ plugins {
 
 /**
  * 签名配置来源（优先级从高到低）：
- *   1. Gradle 属性 -Phishare.keystore=<keystore.properties 路径>
+ *   1. Gradle 属性 -Pheinshare.keystore=<keystore.properties 路径>
  *   2. 环境变量 HISHARE_KEYSTORE_PROPERTIES
  *   3. 团队公共目录 /opt/team/keys/hishare/keystore.properties（默认）
  * 找不到时 release 仍可构建，但产物是未签名包。
  */
 val keystorePropsFile = file(
-    providers.gradleProperty("hishare.keystore").orNull
+    providers.gradleProperty("heinshare.keystore").orNull
         ?: System.getenv("HISHARE_KEYSTORE_PROPERTIES")
         ?: "/opt/team/keys/hishare/keystore.properties"
 )
@@ -24,15 +24,16 @@ val keystoreAvailable = keystorePropsFile.exists() && run {
 }
 
 android {
-    namespace = "com.hishare.android"
+    namespace = "com.heinshare.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.hishare.android"
+        applicationId = "com.heinshare.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.0.1"
+        // 版本号固定 1.0.0，不带 v 前缀；CI 发布时用 -PversionName= 覆盖。
+        versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
+        versionName = (project.findProperty("versionName") as String?) ?: "1.0.0"
     }
 
     signingConfigs {
@@ -83,4 +84,5 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("androidx.recyclerview:recyclerview:1.1.0")
     implementation("androidx.constraintlayout:constraintlayout:2.0.1")
+    testImplementation("junit:junit:4.13.2")
 }

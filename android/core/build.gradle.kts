@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.hishare.core"
+    namespace = "com.heinshare.core"
     compileSdk = 34
 
     defaultConfig {

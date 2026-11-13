@@ -1,1 +1,1 @@
--keep class com.hishare.core.** { *; }
+-keep class com.heinshare.core.** { *; }

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 附近设备：平板 + 广播波 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,7h30a4,4 0 0 1 4,4v26a4,4 0 0 1 -4,4h-30a4,4 0 0 1 -4,-4v-26a4,4 0 0 1 4,-4z"
+        android:strokeColor="#1F6FE0"
+        android:strokeWidth="2.4" />
+    <path android:fillColor="#CBE6FF" android:pathData="M4,11h30v24h-30z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M4,26l8,-8l6,6l5,-7l11,11v7h-30z" />
+    <path android:fillColor="#1F6FE0" android:pathData="M16,38h6a1.5,1.5 0 0 1 0,3h-6a1.5,1.5 0 0 1 0,-3z" />
+    <path android:fillColor="#00000000" android:pathData="M41,17a7,7 0 0 1 0,12"
+        android:strokeColor="#2F86F5" android:strokeLineCap="round" android:strokeWidth="2.4" />
+</vector>

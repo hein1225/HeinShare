@@ -20,6 +20,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "HiShare-Android"
+rootProject.name = "Heinshare-Android"
 include(":app")
 include(":core")

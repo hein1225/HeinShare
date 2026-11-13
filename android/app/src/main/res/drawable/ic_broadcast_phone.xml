@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  手机 + 广播波（对应原设计稿「开启快传」卡与「附近设备」扫描图）。
+  静态矢量，不用动画。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="104dp"
+    android:height="104dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+
+    <!-- 机身 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,10h26a8,8 0 0 1 8,8v60a8,8 0 0 1 -8,8h-26a8,8 0 0 1 -8,-8v-60a8,8 0 0 1 8,-8z"
+        android:strokeColor="#1F6FE0"
+        android:strokeWidth="3.2" />
+
+    <!-- 屏幕 -->
+    <path
+        android:fillColor="#CBE6FF"
+        android:pathData="M12,22h34v52h-34z" />
+
+    <!-- 屏幕里的山与太阳 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,58l10,-12l7,8l6,-9l11,13v16h-34z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,32m-4,0a4,4 0 1,0 8,0a4,4 0 1,0 -8,0" />
+
+    <!-- 听筒与 Home 键 -->
+    <path
+        android:fillColor="#1F6FE0"
+        android:pathData="M24,14h10a2,2 0 0 1 0,4h-10a2,2 0 0 1 0,-4z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M29,80m-3.2,0a3.2,3.2 0 1,0 6.4,0a3.2,3.2 0 1,0 -6.4,0" />
+
+    <!-- 右侧广播波 -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,36a14,14 0 0 1 0,24"
+        android:strokeColor="#2F86F5"
+        android:strokeLineCap="round"
+        android:strokeWidth="3.4" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M62,28a24,24 0 0 1 0,40"
+        android:strokeColor="#2F86F5"
+        android:strokeLineCap="round"
+        android:strokeWidth="3.4" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M70,20a34,34 0 0 1 0,56"
+        android:strokeColor="#8AC0F8"
+        android:strokeLineCap="round"
+        android:strokeWidth="3.4" />
+
+    <!-- 底部投影 -->
+    <path
+        android:fillColor="#DCEAFB"
+        android:pathData="M8,88h44a4,4 0 0 1 0,6h-44a4,4 0 0 1 0,-6z" />
+</vector>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  首页（横屏）：两栏式，**两栏各自独立滚动**。
+
+  为什么不是「一个 ScrollView 套两栏」：
+    那样外层 ScrollView 只有一个滚动容器，两栏高度被拉成一样，
+    左栏（品牌 + 开关卡）内容矮，右栏（设备列表）内容高，
+    结果是「两栏一起滚」，右栏列表一多就够不着底，
+    而且右栏底部被左栏的空白占掉一截 —— 正是用户反馈的「翻不了页」。
+
+  现在：左栏 ScrollView（内容固定，短）、右栏 ScrollView（列表长，自己滚）。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:baselineAligned="false"
+    android:orientation="horizontal"
+    android:paddingStart="18dp"
+    android:paddingEnd="18dp"
+    android:paddingBottom="8dp">
+
+    <!-- 左栏：品牌 + 广播开关卡 -->
+    <ScrollView
+        android:id="@+id/homeHeaderScroll"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <include
+            android:id="@+id/homeHeader"
+            layout="@layout/partial_home_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </ScrollView>
+
+    <!-- 右栏：附近设备 + 连接历史 -->
+    <ScrollView
+        android:id="@+id/homeListsScroll"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="14dp"
+        android:layout_weight="1.15"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <include
+            android:id="@+id/homeLists"
+            layout="@layout/partial_home_lists"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </ScrollView>
+</LinearLayout>

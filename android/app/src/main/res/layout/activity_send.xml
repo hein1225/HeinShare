@@ -56,6 +56,15 @@
             android:orientation="vertical"
             android:padding="20dp">
 
+            <!-- 顶部插图：左手机 + 右平板 + 广播波（对应原设计稿） -->
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="150dp"
+                android:layout_marginBottom="16dp"
+                android:contentDescription="@string/title_send"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_send_pair" />
+
             <!-- 待发送文件确认 -->
             <TextView
                 android:layout_width="match_parent"
@@ -65,12 +74,13 @@
                 android:textColor="@color/ink_500"
                 android:textSize="13sp" />
 
-            <androidx.recyclerview.widget.RecyclerView
+            <!-- 文件列表用 LinearLayout：RecyclerView 嵌在 ScrollView 里
+                 只能量出一屏高度，页面滑不到底 -->
+            <LinearLayout
                 android:id="@+id/sendFileList"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:overScrollMode="never" />
+                android:orientation="vertical" />
 
             <TextView
                 android:id="@+id/sendFileSummary"
@@ -97,7 +107,7 @@
                 <ImageView
                     android:layout_width="26dp"
                     android:layout_height="30dp"
-                    android:src="@drawable/ic_phone"
+                    android:src="@drawable/ic_peer_phone"
                     android:contentDescription="@string/title_send" />
 
                 <TextView
