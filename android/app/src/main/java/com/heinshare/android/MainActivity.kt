@@ -102,14 +102,16 @@ class MainActivity : AppCompatActivity() {
             showSisterAppDialog(
                 "海因影视",
                 "海因影视是本团队的影视播放与管理工具，支持本地片库整理、播放记录与多端访问。",
-                "https://github.com/hein1225/HeinPlay"
+                "https://github.com/hein1225/HeinPlay",
+                "hein1225/HeinPlay"
             )
         }
         binding.settingsPage.rowHeight4Kid.setOnClickListener {
             showSisterAppDialog(
                 "海因成长助手",
                 "海因成长助手用于记录孩子的成长过程，支持相册、身高体重与成长里程碑的持续留存。",
-                "https://github.com/hein1225/Height4Kid"
+                "https://github.com/hein1225/Height4Kid",
+                "hein1225/Height4Kid"
             )
         }
 
@@ -501,14 +503,27 @@ class MainActivity : AppCompatActivity() {
         openUrl(UpdateChecker.REPO_URL)
     }
 
-    /** 「海因软件分享」条目：展示简介与仓库地址，可一键跳转。 */
-    private fun showSisterAppDialog(name: String, intro: String, repo: String) {
-        android.app.AlertDialog.Builder(this)
+    /**
+     * 「海因软件分享」条目：展示简介与仓库地址，可一键跳转。
+     *
+     * 简介优先取该仓库在 GitHub 上的 About（仓库描述），取不到才用兜底文案；
+     * 拿到真实描述后会刷新弹窗内容（先显示「正在读取…」）。
+     */
+    private fun showSisterAppDialog(name: String, intro: String, repo: String, slug: String) {
+        val dialog = android.app.AlertDialog.Builder(this)
             .setTitle(name)
             .setMessage("$intro\n\n仓库地址：\n$repo")
             .setPositiveButton("打开仓库") { _, _ -> openUrl(repo) }
             .setNegativeButton("关闭", null)
-            .show()
+            .create()
+        dialog.show()
+
+        GitHubRepoInfo.fetch(this, slug, intro) { info ->
+            if (!dialog.isShowing) return@fetch
+            val desc = info.description.ifBlank { intro }
+            val stars = if (info.stars > 0) "\n\n★ ${info.stars}" else ""
+            dialog.setMessage("$desc$stars\n\n仓库地址：\n$repo")
+        }
     }
 
     /** 用系统浏览器打开一个网页。 */
@@ -548,34 +563,150 @@ class MainActivity : AppCompatActivity() {
 
     /** 打开一个已接收的文件。 */
     private fun openReceivedFile(file: com.heinshare.core.ReceivedFile) {
-        val target = file.target
-        val uri = if (target.startsWith("content://")) {
-            Uri.parse(target)
-        } else {
-            // 私有目录里的文件要用 FileProvider 才能给别的应用读
-            ApkDownloader.shareableUri(this, target)
-        }
-        if (uri == null) {
+        val target = resolveOpenTarget(file)
+        if (target == null) {
             Toast.makeText(this, "文件已不在原位置：${file.display}", Toast.LENGTH_LONG).show()
             return
         }
-        val mime = if (file.mime.isNotBlank()) file.mime else "*/*"
-        try {
-            startActivity(
-                Intent(Intent.ACTION_VIEW)
-                    .setDataAndType(uri, mime)
-                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            )
-        } catch (e: Exception) {
+        // 依次尝试：真实类型 → 通配类型 → 交给用户自己选应用
+        for (mime in listOf(target.mime, "*/*")) {
+            val intent = Intent(Intent.ACTION_VIEW)
+                .setDataAndType(target.uri, mime)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            // 带上 clipData，部分系统（华为等）只认 clipData 上的临时授权
+            intent.clipData = android.content.ClipData.newRawUri("", target.uri)
             try {
-                startActivity(
-                    Intent(Intent.ACTION_VIEW)
-                        .setDataAndType(uri, "*/*")
-                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                )
-            } catch (e2: Exception) {
-                Toast.makeText(this, "没有能打开这个文件的应用", Toast.LENGTH_SHORT).show()
+                startActivity(intent)
+                return
+            } catch (_: Exception) {
+                // 换下一种方式
             }
+        }
+        // 都没有能打开的：让用户自己挑一个应用
+        val chooser = Intent.createChooser(
+            Intent(Intent.ACTION_VIEW)
+                .setDataAndType(target.uri, target.mime)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
+            "选择应用打开"
+        )
+        chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        try {
+            startActivity(chooser)
+        } catch (_: Exception) {
+            Toast.makeText(this, "没有能打开这个文件的应用", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** 打开时用的目标：URI + 真实 MIME。 */
+    private data class OpenTarget(val uri: Uri, val mime: String)
+
+    /**
+     * 把一条「已接收文件」记录换算成可打开的目标。
+     *
+     * 关键点：
+     *   1. MIME 必须准确。落盘时如果文件名没有可识别的扩展名，会存成
+     *      `application/octet-stream`，系统就会交给「文件管理」这类通用处理，
+     *      结果点开变成「另存为」而不是直接打开。这里按真实文件名重新判定。
+     *   2. 能定位到真实路径时改用 FileProvider 授权，第三方应用读起来最稳。
+     */
+    private fun resolveOpenTarget(file: com.heinshare.core.ReceivedFile): OpenTarget? {
+        val target = file.target
+        if (target.startsWith("content://")) {
+            val uri = Uri.parse(target)
+            var name = file.name
+            var mime = ""
+            var path: String? = null
+            try {
+                contentResolver.query(
+                    uri,
+                    arrayOf(
+                        android.provider.MediaStore.MediaColumns.DISPLAY_NAME,
+                        android.provider.MediaStore.MediaColumns.MIME_TYPE,
+                        android.provider.MediaStore.MediaColumns.DATA
+                    ),
+                    null, null, null
+                )?.use { c ->
+                    if (c.moveToFirst()) {
+                        if (!c.isNull(0)) name = c.getString(0) ?: name
+                        if (!c.isNull(1)) mime = c.getString(1) ?: mime
+                        if (!c.isNull(2)) path = c.getString(2)
+                    }
+                }
+            } catch (_: Exception) {
+                // 查不到就按记录里的信息来
+            }
+            val realMime = mime.ifBlank { mimeOfName(name) }
+            // 有真实路径就换成 FileProvider
+            val realPath = path ?: findInDownloads(name)
+            if (realPath != null) {
+                val fp = ApkDownloader.shareableUri(this, realPath)
+                if (fp != null) return OpenTarget(fp, realMime)
+            }
+            return OpenTarget(uri, realMime)
+        }
+
+        // 绝对路径（应用私有目录 / 旧版公共下载目录）
+        val f = java.io.File(target)
+        if (!f.exists()) return null
+        val fp = ApkDownloader.shareableUri(this, target)
+        if (fp != null) return OpenTarget(fp, mimeOfName(f.name))
+        // FileProvider 不覆盖的位置（SAF 之外的自定义目录）：按文件名去系统「下载」找
+        val found = findInDownloads(f.name)
+        if (found != null) {
+            val fp2 = ApkDownloader.shareableUri(this, found)
+            if (fp2 != null) return OpenTarget(fp2, mimeOfName(f.name))
+        }
+        return null
+    }
+
+    /** 在系统「下载」集合里按文件名找真实路径。找不到返回 null。 */
+    private fun findInDownloads(name: String): String? {
+        if (name.isBlank()) return null
+        return try {
+            contentResolver.query(
+                android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                arrayOf(android.provider.MediaStore.MediaColumns.DATA),
+                "${android.provider.MediaStore.MediaColumns.DISPLAY_NAME} = ?",
+                arrayOf(name),
+                null
+            )?.use { c ->
+                if (c.moveToFirst() && !c.isNull(0)) c.getString(0) else null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /** 按扩展名猜 MIME。跟协议层落盘时用的规则保持一致。 */
+    private fun mimeOfName(name: String): String {
+        val ext = name.substringAfterLast('.', "").lowercase()
+        return when (ext) {
+            "jpg", "jpeg" -> "image/jpeg"
+            "png" -> "image/png"
+            "gif" -> "image/gif"
+            "webp" -> "image/webp"
+            "heic" -> "image/heic"
+            "bmp" -> "image/bmp"
+            "mp4" -> "video/mp4"
+            "mov" -> "video/quicktime"
+            "mkv" -> "video/x-matroska"
+            "avi" -> "video/x-msvideo"
+            "mp3" -> "audio/mpeg"
+            "wav" -> "audio/wav"
+            "m4a" -> "audio/mp4"
+            "flac" -> "audio/flac"
+            "txt" -> "text/plain"
+            "md" -> "text/markdown"
+            "pdf" -> "application/pdf"
+            "zip" -> "application/zip"
+            "apk" -> "application/vnd.android.package-archive"
+            "doc" -> "application/msword"
+            "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            "xls" -> "application/vnd.ms-excel"
+            "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            "ppt" -> "application/vnd.ms-powerpoint"
+            "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            else -> "*/*"
         }
     }
 
