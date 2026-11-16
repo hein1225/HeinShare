@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>海因分享 · 界面预览</title>
+<link rel="stylesheet" href="../assets/app.css">
+<style>
+body.only { padding: 0; background: transparent; }
+body.only .page-head { display: none; }
+body.only .screen { display: none; }
+body.only .screen > figcaption { display: none; }
+body.only #s-send { display: flex; }
+</style>
+</head>
+<body class="only">
+
+<div class="page-head">
+  <h1>海因分享（HeinShare）· 界面预览</h1>
+  <p>按 <code>android/app/src/main/res</code> 下的真实布局、配色、字符串还原，图标由 VectorDrawable 转 SVG。</p>
+</div>
+
+<div class="screens">
+
+  <!-- ══════════════ 1 首页 ══════════════ -->
+  <figure class="screen" id="s-home">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">▲ 4G ▮ 88%</span></div>
+      <div class="content with-nav">
+        <div class="scroll">
+
+          <!-- 品牌区 -->
+          <div class="brand">
+            <img src="../assets/ic_logo.png" alt="海因分享">
+            <div class="col grow">
+              <div class="name">海因分享</div>
+              <div class="sub">兼容华为分享 · 无线互传</div>
+            </div>
+          </div>
+
+          <!-- 开启快传 -->
+          <div class="hero">
+            <div class="row">
+              <img src="../assets/illus/illus_scan.png" alt="快传" style="width:104px;height:104px;object-fit:contain;flex:none">
+              <div class="col grow">
+                <div class="fs-19 bold t-900">开启快传</div>
+                <div class="fs-13 t-500" style="margin-top:3px">开启后可被附近华为分享设备发现</div>
+                <div class="row" style="margin-top:12px">
+                  <span class="pill">可被发现</span>
+                  <span style="flex:1 1 0;min-width:8px"></span>
+                  <span class="toggle"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 附近设备 -->
+          <div class="card cardpad" style="margin-top:14px">
+            <div class="row">
+              <div class="fs-21 bold t-900 grow">附近设备</div>
+              <div class="scan-btn">
+                <img class="ico" src="../assets/icons/ic_refresh.svg">
+                <span>重新扫描</span>
+              </div>
+            </div>
+
+            <!-- 空态：插画 + 提示 -->
+            <div class="row top" style="margin-top:6px;padding:10px 0">
+              <img src="../assets/illus/illus_scan.png" alt="扫描" style="width:96px;height:96px;object-fit:contain;flex:none">
+              <div class="col grow" style="margin-left:14px">
+                <div class="fs-18 bold t-900">正在扫描设备…</div>
+                <div class="fs-13 t-500" style="margin-top:6px">确保对方已打开华为分享，且与本机在同一 Wi-Fi</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 连接历史 -->
+          <div class="card cardpad" style="margin-top:14px;padding-bottom:8px">
+            <div class="fs-21 bold t-900">连接历史</div>
+            <div class="fs-13 t-500" style="margin-top:4px">之前传输过的设备；「在线」表示最近几分钟内收到过它的广播</div>
+
+            <div class="device">
+              <div class="ic"><img class="ico" src="../assets/icons/ic_peer_phone.svg"></div>
+              <div class="col grow">
+                <div class="name">HUAWEI Mate 60 Pro</div>
+                <div class="meta">192.168.8.23</div>
+              </div>
+              <span class="chip gray">离线</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <nav class="nav">
+        <div class="item on">
+          <img class="ico" src="../assets/icons/ic_tab_home.svg">首页
+        </div>
+        <div class="item">
+          <img class="ico" src="../assets/icons/ic_tab_records.svg">记录
+        </div>
+        <div class="item">
+          <img class="ico" src="../assets/icons/ic_tab_settings.svg">设置
+        </div>
+      </nav>
+    </div>
+    <figcaption>1 · 首页</figcaption>
+  </figure>
+
+  <!-- ══════════════ 2 首页（有设备） ══════════════ -->
+  <figure class="screen" id="s-home-list">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">▲ 4G ▮ 88%</span></div>
+      <div class="content with-nav">
+        <div class="scroll">
+
+          <div class="brand">
+            <img src="../assets/ic_logo.png" alt="海因分享">
+            <div class="col grow">
+              <div class="name">海因分享</div>
+              <div class="sub">兼容华为分享 · 无线互传</div>
+            </div>
+          </div>
+
+          <div class="hero">
+            <div class="row">
+              <img src="../assets/illus/illus_scan.png" alt="快传" style="width:104px;height:104px;object-fit:contain;flex:none">
+              <div class="col grow">
+                <div class="fs-19 bold t-900">开启快传</div>
+                <div class="fs-13 t-500" style="margin-top:3px">开启后可被附近华为分享设备发现</div>
+                <div class="row" style="margin-top:12px">
+                  <span class="pill">可被发现</span>
+                  <span style="flex:1 1 0;min-width:8px"></span>
+                  <span class="toggle"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card cardpad" style="margin-top:14px">
+            <div class="row">
+              <div class="fs-21 bold t-900 grow">附近设备</div>
+              <div class="scan-btn">
+                <img class="ico" src="../assets/icons/ic_refresh.svg">
+                <span>重新扫描</span>
+              </div>
+            </div>
+
+            <div class="device">
+              <div class="ic"><img class="ico" src="../assets/icons/ic_peer_phone.svg"></div>
+              <div class="col grow">
+                <div class="name">HUAWEI Mate 60 Pro</div>
+                <div class="meta">192.168.8.23 · 电脑(type 12)</div>
+              </div>
+              <span class="chip">发送</span>
+            </div>
+
+            <div class="device">
+              <div class="ic"><img class="ico" src="../assets/icons/ic_peer_tablet.svg"></div>
+              <div class="col grow">
+                <div class="name">iPad Pro 11</div>
+                <div class="meta">192.168.8.51 · 电脑(type 12)</div>
+              </div>
+              <span class="chip">发送</span>
+            </div>
+          </div>
+
+          <div class="card cardpad" style="margin-top:14px;padding-bottom:8px">
+            <div class="fs-21 bold t-900">连接历史</div>
+            <div class="fs-13 t-500" style="margin-top:4px">之前传输过的设备；「在线」表示最近几分钟内收到过它的广播</div>
+
+            <div class="device">
+              <div class="ic"><img class="ico" src="../assets/icons/ic_peer_phone.svg"></div>
+              <div class="col grow">
+                <div class="name">HUAWEI Mate 60 Pro</div>
+                <div class="meta">192.168.8.23</div>
+              </div>
+              <span class="pill green">在线</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <nav class="nav">
+        <div class="item on">
+          <img class="ico" src="../assets/icons/ic_tab_home.svg">首页
+        </div>
+        <div class="item">
+          <img class="ico" src="../assets/icons/ic_tab_records.svg">记录
+        </div>
+        <div class="item">
+          <img class="ico" src="../assets/icons/ic_tab_settings.svg">设置
+        </div>
+      </nav>
+    </div>
+    <figcaption>2 · 首页（扫到设备）</figcaption>
+  </figure>
+
+  <!-- ══════════════ 3 发送页 ══════════════ -->
+  <figure class="screen" id="s-send">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">▲ 4G ▮ 88%</span></div>
+      <div class="content">
+        <div class="topbar">
+          <span class="back"><img class="ico" src="../assets/icons/ic_back.svg"></span>
+          <div class="title">正在发送</div>
+          <span class="spacer"></span>
+        </div>
+        <div class="scroll" style="padding:0 18px 16px">
+          <div class="card cardpad" style="margin-top:8px;padding:20px">
+
+            <img src="../assets/illus/illus_send.png" alt="互传" style="width:100%;height:150px;object-fit:contain;margin-bottom:16px">
+
+            <div class="fs-13 t-500">待发送文件</div>
+
+            <div class="file-row">
+              <img class="ico" src="../assets/icons/ic_doc.svg">
+              <span class="grow">海因分享方案.pdf</span>
+              <span class="t-400 fs-12">2.4 MB</span>
+            </div>
+            <div class="file-row">
+              <img class="ico" src="../assets/icons/ic_video.svg">
+              <span class="grow">演示视频.mp4</span>
+              <span class="t-400 fs-12">18.2 MB</span>
+            </div>
+
+            <div class="fs-13 t-400" style="margin-top:2px">共 2 个文件 · 20.6 MB</div>
+
+            <div class="divider"></div>
+
+            <div class="row">
+              <img class="ico" style="width:26px;height:30px" src="../assets/icons/ic_peer_phone.svg">
+              <div class="fs-18 bold t-900" style="margin-left:12px">HUAWEI Mate 60 Pro</div>
+            </div>
+
+            <div class="progress-panel">
+              <div class="progress"><i style="width:68%"></i><span>68%</span></div>
+              <div class="row" style="margin-top:14px">
+                <span class="fs-14 t-500 grow">8.2 MB/s</span>
+                <span class="fs-14 t-500" style="text-align:right">剩余 3 秒</span>
+              </div>
+            </div>
+
+            <div class="row" style="margin-top:22px">
+              <div class="btn-outline">返回</div>
+              <span style="width:14px"></span>
+              <div class="btn-primary">后台传输</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    <figcaption>3 · 正在发送</figcaption>
+  </figure>
+
+  <!-- ══════════════ 4 接收确认 ══════════════ -->
+  <figure class="screen" id="s-recv">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">▲ 4G ▮ 88%</span></div>
+      <div class="content">
+        <div class="topbar">
+          <span class="back"><img class="ico" src="../assets/icons/ic_back.svg"></span>
+          <div class="title">接收文件</div>
+          <span class="spacer"></span>
+        </div>
+        <div class="scroll" style="padding:0 18px 16px">
+          <div class="card" style="margin-top:8px;padding:20px;text-align:center">
+
+            <div style="padding-top:12px;padding-bottom:20px">
+              <img class="ico" style="width:88px;height:88px;display:block;margin:0 auto" src="../assets/icons/ic_phone.svg">
+              <div class="fs-19 bold t-900" style="margin-top:14px">HUAWEI Mate 60 Pro 想发送 2 个文件（20.6 MB）</div>
+            </div>
+
+            <div class="row" style="margin-top:20px">
+              <div class="btn-outline">拒绝</div>
+              <span style="width:14px"></span>
+              <div class="btn-primary">接受</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    <figcaption>4 · 接收确认</figcaption>
+  </figure>
+
+  <!-- ══════════════ 5 接收完成 ══════════════ -->
+  <figure class="screen" id="s-recv-done">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">▲ 4G ▮ 88%</span></div>
+      <div class="content">
+        <div class="topbar">
+          <span class="back"><img class="ico" src="../assets/icons/ic_back.svg"></span>
+          <div class="title">接收文件</div>
+          <span class="spacer"></span>
+        </div>
+        <div class="scroll" style="padding:0 18px 16px">
+          <div class="card" style="margin-top:8px;padding:20px;text-align:center">
+
+            <div style="padding-top:12px;padding-bottom:8px">
+              <img src="../assets/illus/illus_done.png" alt="完成" style="width:120px;height:120px;object-fit:contain;margin:0 auto">
+              <div class="fs-19 bold t-900" style="margin-top:8px">已接收 2 个文件（20.6 MB）</div>
+            </div>
+
+            <div class="progress-panel" style="text-align:left">
+              <div class="progress"><i style="width:100%"></i><span>100%</span></div>
+              <div class="fs-14 t-500" style="margin-top:12px">全部文件已保存，可以关闭页面了</div>
+            </div>
+
+            <div class="btn-block" style="margin-top:20px">完成</div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    <figcaption>5 · 接收完成</figcaption>
+  </figure>
+
+  <!-- ══════════════ 6 传输记录 ══════════════ -->
+  <figure class="screen" id="s-records">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">▲ 4G ▮ 88%</span></div>
+      <div class="content with-nav">
+        <div class="scroll">
+
+          <div class="fs-28 bold t-900" style="margin-top:18px">传输记录</div>
+          <div class="fs-14 t-500" style="margin-top:4px">与附近设备的全部收发</div>
+
+          <div class="section-label">快捷操作</div>
+          <div class="card cardpad">
+            <div class="row">
+              <div class="icon-circle"><img class="ico" src="../assets/icons/ic_share.svg"></div>
+              <div class="col grow" style="margin-left:12px">
+                <div class="fs-16 bold t-900">开启快传</div>
+                <div class="fs-12 t-400" style="margin-top:2px">可被发现</div>
+              </div>
+              <span class="toggle sm"></span>
+            </div>
+          </div>
+
+          <div class="section-label">全部记录</div>
+          <div class="card cardpad" style="display:flex;align-items:center;gap:14px">
+            <div class="icon-circle"><img class="ico" src="../assets/icons/ic_upload.svg"></div>
+            <div class="col grow">
+              <div class="fs-16 bold t-900">海因分享方案.pdf</div>
+              <div class="fs-12 t-400" style="margin-top:3px">发送到 HUAWEI Mate 60 Pro · 20.6 MB</div>
+            </div>
+            <span class="pill green">成功</span>
+          </div>
+
+          <div class="section-label">已接收的文件</div>
+          <div class="card" style="text-align:center;padding:20px">
+            <img src="../assets/illus/illus_empty.png" alt="空" style="width:112px;height:112px;object-fit:contain">
+            <div class="fs-13 t-400" style="margin-top:8px">还没有接收过文件</div>
+          </div>
+
+        </div>
+      </div>
+      <nav class="nav">
+        <div class="item">
+          <img class="ico" src="../assets/icons/ic_tab_home_off.svg">首页
+        </div>
+        <div class="item on">
+          <img class="ico" src="../assets/icons/ic_tab_records.svg">记录
+        </div>
+        <div class="item">
+          <img class="ico" src="../assets/icons/ic_tab_settings.svg">设置
+        </div>
+      </nav>
+    </div>
+    <figcaption>6 · 传输记录</figcaption>
+  </figure>
+
+  <!-- ══════════════ 7 设置 ══════════════ -->
+  <figure class="screen" id="s-settings">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">▲ 4G ▮ 88%</span></div>
+      <div class="content with-nav">
+        <div class="scroll">
+
+          <div class="fs-28 bold t-900" style="margin-top:18px">设置</div>
+
+          <div class="section-label">设备</div>
+          <div class="card cardpad">
+            <div class="row">
+              <div class="icon-circle"><img class="ico" src="../assets/icons/ic_device.svg"></div>
+              <div class="col grow" style="margin-left:12px">
+                <div class="fs-16 bold t-900">设备名称</div>
+                <div class="fs-12 t-400" style="margin-top:2px">海因分享</div>
+              </div>
+              <span class="chev">›</span>
+            </div>
+            <div class="divider"></div>
+            <div class="row">
+              <div class="icon-circle"><img class="ico" src="../assets/icons/ic_clock.svg"></div>
+              <div class="col grow" style="margin-left:12px">
+                <div class="fs-16 bold t-900">连接状态</div>
+                <div class="fs-12 t-400" style="margin-top:2px">已连接到 192.168.8.23:5684</div>
+              </div>
+              <span class="pill green">在线</span>
+            </div>
+          </div>
+
+          <div class="section-label">华为分享发现</div>
+          <div class="card cardpad">
+            <div class="row">
+              <div class="icon-circle"><img class="ico" src="../assets/icons/ic_share.svg"></div>
+              <div class="col grow" style="margin-left:12px">
+                <div class="fs-16 bold t-900">可被发现</div>
+                <div class="fs-12 t-400" style="margin-top:2px">在局域网内广播本机</div>
+              </div>
+              <span class="toggle sm"></span>
+            </div>
+          </div>
+
+          <div class="section-label">接收文件</div>
+          <div class="card cardpad">
+            <div class="row">
+              <div class="icon-circle"><img class="ico" src="../assets/icons/ic_download.svg"></div>
+              <div class="col grow" style="margin-left:12px">
+                <div class="fs-16 bold t-900">保存位置</div>
+                <div class="fs-12 t-400" style="margin-top:2px">系统「下载」/Heinshare（推荐）</div>
+              </div>
+              <span class="chev">›</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <nav class="nav">
+        <div class="item">
+          <img class="ico" src="../assets/icons/ic_tab_home_off.svg">首页
+        </div>
+        <div class="item">
+          <img class="ico" src="../assets/icons/ic_tab_records_off.svg">记录
+        </div>
+        <div class="item on">
+          <img class="ico" src="../assets/icons/ic_tab_settings.svg">设置
+        </div>
+      </nav>
+    </div>
+    <figcaption>7 · 设置</figcaption>
+  </figure>
+
+</div>
+
+
+</body>
+</html>
