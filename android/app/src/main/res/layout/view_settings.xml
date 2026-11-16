@@ -378,6 +378,81 @@
             android:paddingStart="16dp"
             android:paddingEnd="16dp">
 
+            <!-- 热点直连 -->
+            <LinearLayout
+                android:id="@+id/rowHotspot"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp">
+
+                <ImageView
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_icon_circle"
+                    android:padding="7dp"
+                    android:src="@drawable/ic_wifi"
+                    android:contentDescription="@string/hotspot_title" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/hotspot_title"
+                        android:textColor="@color/ink_900"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/hotspotValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/hotspot_state_off"
+                        android:textColor="@color/ink_400"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <FrameLayout
+                    android:id="@+id/hotspotSwitchBox"
+                    android:layout_width="52dp"
+                    android:layout_height="30dp"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <View
+                        android:id="@+id/hotspotSwitchTrack"
+                        android:layout_width="52dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_toggle_off" />
+
+                    <View
+                        android:id="@+id/hotspotSwitchKnob"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="end"
+                        android:layout_marginTop="3dp"
+                        android:layout_marginEnd="3dp"
+                        android:background="@drawable/bg_knob" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/line_soft" />
+
             <!-- 后台传输 -->
             <LinearLayout
                 android:id="@+id/rowBackgroundTransfer"

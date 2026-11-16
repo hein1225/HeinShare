@@ -49,8 +49,60 @@ object Net {
     /** VPN / 虚拟网卡前缀：这些网卡的地址不能作为华为分享的 wlanIp。 */
     private val VIRTUAL_IFACE_PREFIXES = listOf("tun", "tap", "ppp", "wg", "docker", "veth", "vboxnet", "virbr")
 
+    /**
+     * 热点模式下本机的地址所在网段。
+     *
+     * Android 各版本 SoftAP 的默认网段不一样：
+     * Android 10~12 用 192.168.43.x，Android 13 之后改成 192.168.42.x，
+     * 部分 ROM 还会用 192.168.49.x。这些段在路由器网段里很少见，
+     * 可以用来认出「当前地址是热点地址」。
+     */
+    private val AP_SUBNETS = listOf("192.168.43.", "192.168.42.", "192.168.49.")
+
+    /** 判断某个地址是否属于常见热点网段。 */
+    fun isHotspotAddress(ip: String): Boolean {
+        if (ip.startsWith("169.254.")) return false
+        if (ip.startsWith("127.")) return false
+        return AP_SUBNETS.any { ip.startsWith(it) }
+    }
+
+    /** 热点开启时本机在热点上的地址（找不到返回 null）。 */
+    fun hotspotIPv4(): String? {
+        val interfaces = NetworkInterface.getNetworkInterfaces()
+        var fallback: String? = null
+        while (interfaces != null && interfaces.hasMoreElements()) {
+            val nif = interfaces.nextElement()
+            if (!nif.isUp || nif.isLoopback) continue
+            val isApName = nif.name.startsWith("ap") || nif.name.startsWith("softap") ||
+                nif.name.startsWith("wlanc")
+            for (addr in nif.inetAddresses) {
+                if (addr !is Inet4Address || addr.isLoopbackAddress) continue
+                val ip = addr.hostAddress ?: continue
+                if (ip.startsWith("169.254.")) continue
+                if (isHotspotAddress(ip)) return ip
+                if (isApName && fallback == null) fallback = ip
+            }
+        }
+        return fallback
+    }
+
+    /**
+     * 本机当前是否处于「热点模式」。
+     *
+     * 由 [Hotspot] 在状态变化时写入。
+     * 这里刻意不直接引用 [Hotspot]：Hotspot 的 object 初始化要建 Handler（依赖 Android 运行时），
+     * 单元测试里引用它会抛 ExceptionInInitializerError。纯字段就没这个问题。
+     */
+    @Volatile
+    var hotspotActive: Boolean = false
+
     /** 取当前对外的 IPv4（优先 wlan / eth）。 */
     fun localIPv4(): String {
+        // 开着本机热点时，wlan0 变成 AP 模式、地址是热点网段，
+        // 必须优先用它 —— 否则发现包会从错误的网卡发出去。
+        if (hotspotActive) {
+            hotspotIPv4()?.let { return it }
+        }
         val interfaces = NetworkInterface.getNetworkInterfaces()
         var fallback: String? = null
         while (interfaces != null && interfaces.hasMoreElements()) {

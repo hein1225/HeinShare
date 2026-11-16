@@ -83,4 +83,18 @@
     <string name="recv_done_fmt">已接收 %1$d 个文件（%2$s）</string>
     <string name="recv_done_status">全部文件已保存，可以关闭页面了</string>
     <string name="recv_done_button">完成</string>
+
+    <!-- 热点直连 -->
+    <string name="hotspot_title">热点直连</string>
+    <string name="hotspot_desc">没有路由器时打开本机热点，对方连上即可互传</string>
+    <string name="hotspot_need_wifi">请先连接 Wi-Fi 再开启热点</string>
+    <string name="hotspot_started">热点已开启，请让对方连接「%1$s」</string>
+    <string name="hotspot_stopped">热点已关闭</string>
+    <string name="hotspot_failed">开启热点失败：%1$s</string>
+    <string name="hotspot_unsupported">本机系统不支持程序化开启热点，请手动开启并把网络名称告知对方</string>
+    <string name="hotspot_state_off">未开启</string>
+    <string name="hotspot_state_starting">正在开启…</string>
+    <string name="hotspot_state_on">已开启 · 对方连上本机热点即可发现</string>
+    <string name="hotspot_state_failed">开启失败：%1$s</string>
+    <string name="hotspot_manual_hint">请到系统设置里手动开启「热点」，本应用会自动识别并使用</string>
 </resources>

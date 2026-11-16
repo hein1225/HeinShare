@@ -146,6 +146,9 @@ class HeinshareService : Service() {
     private var server: ServerSocket? = null
     private var identity: Identity? = null
     private val workers = Executors.newCachedThreadPool()
+
+    /** 定时任务执行器（热点探测等）。 */
+    private val scheduler = Executors.newSingleThreadScheduledExecutor()
     @Volatile private var running = false
 
 
@@ -158,6 +161,9 @@ class HeinshareService : Service() {
      */
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
+    /** 热点状态轮询任务。 */
+    @Volatile private var hotspotWatcher: java.util.concurrent.ScheduledFuture<*>? = null
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -168,6 +174,15 @@ class HeinshareService : Service() {
         // 平时不扫描局域网，列表靠这份历史撑着。
         ShareHub.peerStore = PrefsPeerStore(applicationContext)
         ShareHub.loadHistory()
+        // 热点开/关后本机 IP 与出口网卡都变了，发现套接字必须重建，
+        // 否则发现包还从旧网卡发出去，对方扫不到。
+        Hotspot.onChanged = { state ->
+            ShareHub.log("热点状态变化：$state")
+            if (running) rebuildTransport()
+        }
+        // 程序化开热点在新系统上常被拒，用户多半会改成手动开热点。
+        // 定时检测一下：手动开的热点同样能识别出来并正常工作。
+        startHotspotWatcher()
         ShareHub.log("服务已启动")
     }
 
@@ -421,6 +436,33 @@ class HeinshareService : Service() {
             // 首页的「连接历史」靠它判断在线/离线。
             onSeen = { peer -> ShareHub.noteSeen(peer) }
         ).also { it.start() }
+    }
+
+    /**
+     * 定时检测本机热点状态。
+     *
+     * Android 10 以后程序化开 SoftAP 基本开不起来，用户会去系统设置里手动开。
+     * 这个探测让「手动开的热点」也能被识别：本机地址切到热点网段，
+     * 发现包从热点网卡发出去，对方连上后就能互相发现。
+     */
+    private fun startHotspotWatcher() {
+        hotspotWatcher?.cancel(false)
+        val task = object : Runnable {
+            override fun run() {
+                if (!running) return
+                try { Hotspot.detect(applicationContext) } catch (_: Exception) {}
+                try {
+                    scheduler.schedule(this, 3, java.util.concurrent.TimeUnit.SECONDS)
+                } catch (_: Exception) {}
+            }
+        }
+        try {
+            hotspotWatcher = scheduler.scheduleWithFixedDelay(
+                task, 2, 3, java.util.concurrent.TimeUnit.SECONDS
+            )
+        } catch (e: Exception) {
+            ShareHub.log("热点探测启动失败：${e.message}")
+        }
     }
 
     private fun acquireMulticastLock() {

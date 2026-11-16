@@ -23,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.heinshare.core.Discovery
 import com.heinshare.core.HeinshareService
+import com.heinshare.core.Hotspot
 import com.heinshare.core.ShareHub
 
 /**
@@ -47,6 +48,7 @@ class MainActivity : AppCompatActivity() {
     private val onlineTicker = object : Runnable {
         override fun run() {
             refreshDevices()
+            refreshHotspotUi()
             handler.postDelayed(this, ONLINE_TICK_MS)
         }
     }
@@ -95,6 +97,8 @@ class MainActivity : AppCompatActivity() {
 
         binding.settingsPage.rowDeviceName.setOnClickListener { editDeviceName() }
         binding.settingsPage.rowBackgroundTransfer.setOnClickListener { toggleBackground() }
+        binding.settingsPage.rowHotspot.setOnClickListener { toggleHotspot() }
+        binding.settingsPage.hotspotSwitchBox.setOnClickListener { toggleHotspot() }
         binding.settingsPage.rowSaveDir.setOnClickListener { editSaveDir() }
         binding.settingsPage.rowCheckUpdate.setOnClickListener { manualCheckUpdate() }
         binding.settingsPage.rowRepo.setOnClickListener { openRepo() }
@@ -359,8 +363,12 @@ class MainActivity : AppCompatActivity() {
     private fun refreshStatus() {
         val ip = Fmt.localIp()
         val wifi = isWifiConnected()
-        binding.settingsPage.connectionValue.text =
-            if (wifi) "$ip · 已连接" else "$ip · 未连接 Wi-Fi"
+        val apOn = Hotspot.state == Hotspot.State.ON
+        binding.settingsPage.connectionValue.text = when {
+            apOn -> "$ip · 本机热点已开启"
+            wifi -> "$ip · 已连接"
+            else -> "$ip · 未连接 Wi-Fi"
+        }
         binding.settingsPage.connectionBadge.text = if (wifi) "在线" else "离线"
         binding.settingsPage.connectionBadge.setTextColor(
             ContextCompat.getColor(this, if (wifi) R.color.green_ok else R.color.ink_400)
@@ -372,6 +380,92 @@ class MainActivity : AppCompatActivity() {
         binding.settingsPage.versionValue.text =
             "海因分享 ${UpdateChecker.currentVersion(this)}（兼容华为分享协议）"
         binding.settingsPage.repoUrl.text = "github.com/hein1225/HeinShare"
+        refreshHotspotUi()
+    }
+
+    // ------------------------------------------------------------ 热点直连
+
+    /**
+     * 开关本机热点。
+     *
+     * 没有路由器时的兜底：本机开热点 → 对方连上 → 两台设备进入同一网段，
+     * 现有的 5684 发现协议就能直接用（与华为的 SoftBus 直连不同，这是借热点中转）。
+     */
+    private fun toggleHotspot() {
+        when (Hotspot.state) {
+            Hotspot.State.ON -> {
+                Hotspot.stop(this) {
+                    runOnUiThread {
+                        Toast.makeText(this, R.string.hotspot_stopped, Toast.LENGTH_SHORT).show()
+                        refreshHotspotUi()
+                    }
+                }
+            }
+            Hotspot.State.STARTING -> {
+                Toast.makeText(this, R.string.hotspot_state_starting, Toast.LENGTH_SHORT).show()
+            }
+            else -> {
+                if (!Hotspot.isSupported()) {
+                    Toast.makeText(this, R.string.hotspot_unsupported, Toast.LENGTH_LONG).show()
+                    return
+                }
+                if (!isWifiConnected()) {
+                    Toast.makeText(this, R.string.hotspot_need_wifi, Toast.LENGTH_SHORT).show()
+                    return
+                }
+                Hotspot.start(this) { ok ->
+                    runOnUiThread {
+                        if (ok) {
+                            val ssid = Hotspot.activeSsid
+                            Toast.makeText(
+                                this,
+                                getString(R.string.hotspot_started, ssid),
+                                Toast.LENGTH_LONG
+                            ).show()
+                        } else {
+                            // 新系统上程序化开热点基本会被拒 —— 明确告诉用户改用系统设置手动开，
+                            // 本应用会自动识别手动开的热点。
+                            Toast.makeText(
+                                this,
+                                getString(R.string.hotspot_failed, Hotspot.lastError),
+                                Toast.LENGTH_LONG
+                            ).show()
+                            startManualHotspotHint()
+                        }
+                        refreshHotspotUi()
+                    }
+                }
+                refreshHotspotUi()
+            }
+        }
+    }
+
+    /** 热点开关与状态文案。 */
+    private fun refreshHotspotUi() {
+        val state = Hotspot.state
+        setSwitch(binding.settingsPage.hotspotSwitchTrack, binding.settingsPage.hotspotSwitchKnob, state == Hotspot.State.ON, 52, 24)
+        binding.settingsPage.hotspotValue.text = when (state) {
+            Hotspot.State.ON -> getString(R.string.hotspot_state_on)
+            Hotspot.State.STARTING -> getString(R.string.hotspot_state_starting)
+            Hotspot.State.FAILED -> getString(R.string.hotspot_state_failed, Hotspot.lastError)
+            else -> getString(R.string.hotspot_state_off)
+        }
+    }
+
+    /**
+     * 程序化开热点失败时，引导用户去系统设置手动开。
+     *
+     * 手动开的热点本应用照样能用：服务里的热点探测会识别出热点地址，
+     * 把本机地址切到热点网段、发现包从热点网卡发出去。
+     */
+    private fun startManualHotspotHint() {
+        try {
+            val intent = Intent("android.settings.WIRELESS_SETTINGS")
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, R.string.hotspot_manual_hint, Toast.LENGTH_LONG).show()
+        }
     }
 
     /** 「可被发现」状态的精确描述。 */
@@ -390,8 +484,9 @@ class MainActivity : AppCompatActivity() {
         else -> getString(R.string.save_target_private, saveDirPref)
     }
 
-    /** 是否连着 Wi-Fi。 */
+    /** 是否连着 Wi-Fi。开热点时本机就是 AP，仍算「有网」。 */
     private fun isWifiConnected(): Boolean {
+        if (Hotspot.state == Hotspot.State.ON) return true
         val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
         val network = cm.activeNetwork ?: return false
         val caps = cm.getNetworkCapabilities(network) ?: return false
