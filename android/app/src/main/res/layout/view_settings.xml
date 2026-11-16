@@ -383,9 +383,6 @@
                 android:id="@+id/rowHotspot"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:paddingTop="14dp"
@@ -423,29 +420,6 @@
                         android:textColor="@color/ink_400"
                         android:textSize="12sp" />
                 </LinearLayout>
-
-                <FrameLayout
-                    android:id="@+id/hotspotSwitchBox"
-                    android:layout_width="52dp"
-                    android:layout_height="30dp"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <View
-                        android:id="@+id/hotspotSwitchTrack"
-                        android:layout_width="52dp"
-                        android:layout_height="30dp"
-                        android:background="@drawable/bg_toggle_off" />
-
-                    <View
-                        android:id="@+id/hotspotSwitchKnob"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_gravity="end"
-                        android:layout_marginTop="3dp"
-                        android:layout_marginEnd="3dp"
-                        android:background="@drawable/bg_knob" />
-                </FrameLayout>
             </LinearLayout>
 
             <View

@@ -180,8 +180,8 @@ class HeinshareService : Service() {
             ShareHub.log("热点状态变化：$state")
             if (running) rebuildTransport()
         }
-        // 程序化开热点在新系统上常被拒，用户多半会改成手动开热点。
-        // 定时检测一下：手动开的热点同样能识别出来并正常工作。
+        // 热点由用户在系统设置里手动开，这里定时检测一下：
+        // 检测到热点已开就把本机地址切到热点网段，发现包从热点网卡发出。
         startHotspotWatcher()
         ShareHub.log("服务已启动")
     }
