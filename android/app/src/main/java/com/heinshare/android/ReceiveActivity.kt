@@ -84,6 +84,8 @@ class ReceiveActivity : AppCompatActivity() {
             binding.rejectButton.isEnabled = false
             binding.recvButtons.visibility = View.VISIBLE
             binding.recvProgressPanel.visibility = View.GONE
+            binding.recvDoneIllus.visibility = View.GONE
+            binding.recvPeerIcon.visibility = View.VISIBLE
             return
         }
         // 换成了一个新的请求（同一台设备发的第二个文件）：
@@ -97,6 +99,8 @@ class ReceiveActivity : AppCompatActivity() {
             if (isNew) {
                 binding.recvProgressPanel.visibility = View.GONE
                 binding.recvDoneButton.visibility = View.GONE
+                binding.recvDoneIllus.visibility = View.GONE
+                binding.recvPeerIcon.visibility = View.VISIBLE
                 binding.recvProgressBar.progress = 0
                 binding.recvProgressText.text = "0%"
             }
@@ -159,6 +163,9 @@ class ReceiveActivity : AppCompatActivity() {
         )
         binding.recvStatus.text = getString(R.string.recv_done_status)
         binding.recvDoneButton.visibility = View.VISIBLE
+        // 完成态：换成「已完成」插画，藏掉对端手机图标
+        binding.recvDoneIllus.visibility = View.VISIBLE
+        binding.recvPeerIcon.visibility = View.GONE
 
         // 3 秒后自动关页（用户已经看到「完成」了，不需要手动点）
         if (!finishScheduled) {

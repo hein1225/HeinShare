@@ -151,17 +151,35 @@
             android:textSize="13sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/receivedEmpty"
+        <LinearLayout
+            android:id="@+id/receivedEmptyBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_card"
             android:elevation="1dp"
-            android:padding="16dp"
-            android:text="还没有接收过文件"
-            android:textColor="@color/ink_400"
-            android:textSize="13sp" />
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingTop="20dp"
+            android:paddingBottom="20dp">
+
+            <ImageView
+                android:layout_width="112dp"
+                android:layout_height="112dp"
+                android:contentDescription="@string/records_received_empty"
+                android:scaleType="fitCenter"
+                android:src="@drawable/illus_empty" />
+
+            <TextView
+                android:id="@+id/receivedEmpty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="@string/records_received_empty"
+                android:textColor="@color/ink_400"
+                android:textSize="13sp" />
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/receivedList"

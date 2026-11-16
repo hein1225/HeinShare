@@ -63,10 +63,21 @@
             android:paddingTop="12dp"
             android:paddingBottom="20dp">
 
+            <!-- 完成态插画：只在传输完成后出现，平时隐藏 -->
+            <ImageView
+                android:id="@+id/recvDoneIllus"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_marginBottom="8dp"
+                android:contentDescription="@string/recv_done_status"
+                android:scaleType="fitCenter"
+                android:src="@drawable/illus_done"
+                android:visibility="gone" />
+
             <ImageView
                 android:id="@+id/recvPeerIcon"
-                android:layout_width="72dp"
-                android:layout_height="72dp"
+                android:layout_width="88dp"
+                android:layout_height="88dp"
                 android:src="@drawable/ic_phone"
                 android:contentDescription="@string/title_receive" />
 

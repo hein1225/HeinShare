@@ -541,6 +541,8 @@ class MainActivity : AppCompatActivity() {
     private fun refreshReceived() {
         val files = ShareHub.received
         val container = binding.recordsPage.receivedList
+        binding.recordsPage.receivedEmptyBox.visibility =
+            if (files.isEmpty()) View.VISIBLE else View.GONE
         binding.recordsPage.receivedEmpty.visibility =
             if (files.isEmpty()) View.VISIBLE else View.GONE
 

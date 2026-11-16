@@ -63,7 +63,7 @@
                 android:layout_marginBottom="16dp"
                 android:contentDescription="@string/title_send"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_send_pair" />
+                android:src="@drawable/illus_send" />
 
             <!-- 待发送文件确认 -->
             <TextView

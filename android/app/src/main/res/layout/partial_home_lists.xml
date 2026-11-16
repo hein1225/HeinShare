@@ -75,7 +75,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- 空态：手机广播图 + 说明，有设备时整体隐藏 -->
+        <!-- 空态：手机互传插画 + 说明，有设备时整体隐藏 -->
         <LinearLayout
             android:id="@+id/scanningBox"
             android:layout_width="match_parent"
@@ -87,11 +87,11 @@
             android:paddingBottom="10dp">
 
             <ImageView
-                android:layout_width="92dp"
-                android:layout_height="92dp"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
                 android:contentDescription="@string/scanning"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_broadcast_phone" />
+                android:src="@drawable/illus_scan" />
 
             <LinearLayout
                 android:layout_width="0dp"

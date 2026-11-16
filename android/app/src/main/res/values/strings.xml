@@ -15,6 +15,7 @@
     <string name="history_title">连接历史</string>
     <string name="history_hint">之前传输过的设备；「在线」表示最近几分钟内收到过它的广播</string>
     <string name="history_empty">还没有连接记录，传过一次就会出现在这里</string>
+    <string name="records_received_empty">还没有接收过文件</string>
     <string name="state_online">在线</string>
     <string name="state_offline">离线</string>
     <string name="scanning">正在扫描设备…</string>
