@@ -205,6 +205,9 @@ class Receiver(
         var activeStream: OutputStream? = null
         var activeHandle: SaveHandle? = null
         var written = 0L
+        // 写盘聚合缓冲：攒够 512KB 再落一次盘
+        var writeBuf = ByteArray(512 * 1024)
+        var writeLen = 0
 
         var metaSent = false
         var myMetaSeq = 0L
@@ -219,6 +222,9 @@ class Receiver(
         // 数据块计数：只用来控制日志频率
         var chunkCount = 0
         var chunkBytes = 0L
+        // 进度上报节流
+        var lastReportedBytes = 0L
+        var lastReportAt = 0L
 
         while (System.currentTimeMillis() < deadline) {
             if (cancelled) throw ReceiveException("已取消接收")
@@ -240,7 +246,7 @@ class Receiver(
                 val s = try { l.accept() } catch (e: Exception) { null }
                 if (s != null) {
                     s.tcpNoDelay = true
-                    byteChannel = Channel(s, "byte")
+                    byteChannel = Channel.fromSocket(s, "byte")
                     byteListener = null
                     progressed = true
                     log("byte 通道已接入")
@@ -251,7 +257,7 @@ class Receiver(
                 val s = try { l.accept() } catch (e: Exception) { null }
                 if (s != null) {
                     s.tcpNoDelay = true
-                    fileChannel = Channel(s, "file#1")
+                    fileChannel = Channel.fromSocket(s, "file#1")
                     fileListener = null
                     progressed = true
                     log("file 通道已接入")
@@ -329,6 +335,11 @@ class Receiver(
                             if (!headerSeen || header.transaction != transaction) continue
                             val (fid, _, content) = Protocol.dfileParseChunkAny(fkey, payload, dfileCipher)
                             if (activeId != fid) {
+                                // 切换到下一个文件前，先把上一个文件聚合的字节冲出去
+                                if (writeLen > 0 && activeStream != null) {
+                                    activeStream?.write(writeBuf, 0, writeLen)
+                                    writeLen = 0
+                                }
                                 activeId = fid
                                 val entry = expectedFiles.firstOrNull { it.id == fid }
                                 activeDeclared = entry?.size ?: 0L
@@ -339,13 +350,36 @@ class Receiver(
                                 written = 0L
                             }
                             val out = activeStream ?: throw ReceiveException("目标文件未打开")
-                            out.write(content)
+                            // 写盘聚合：目标可能是 MediaStore（跨进程 ContentProvider），
+                            // 每 64KB 写一次就是一次 Binder 往返，实测只有几十 MB/s。
+                            // 聚到 512KB 再写，跨进程写次数降到 1/8。
+                            if (writeLen + content.size > writeBuf.size) {
+                                out.write(writeBuf, 0, writeLen)
+                                writeLen = 0
+                            }
+                            System.arraycopy(content, 0, writeBuf, writeLen, content.size)
+                            writeLen += content.size
                             written += content.size
                             totalReceived += content.size
+                            // 进度上报要够细：外层循环一轮最多吃 64 个数据块（4MB），
+                            // 只在外层上报的话，界面上的速度会是「4MB 跳一次」，
+                    //        看着像卡住了。这里每 512KB / 每 500ms 上报一次。
+                            val nowMs = System.currentTimeMillis()
+                            if (totalReceived - lastReportedBytes >= 512 * 1024 ||
+                                nowMs - lastReportAt >= 500
+                            ) {
+                                lastReportedBytes = totalReceived
+                                lastReportAt = nowMs
+                                progress(totalReceived, session.totalBytes)
+                            }
                             val complete = activeDeclared > 0 && written >= activeDeclared
                             if (header.flags == 3 || complete) {
                                 if (header.flags == 3 && activeDeclared > 0 && written < activeDeclared) {
                                     throw ReceiveException("文件不完整：$activeName")
+                                }
+                                if (writeLen > 0) {
+                                    out.write(writeBuf, 0, writeLen)
+                                    writeLen = 0
                                 }
                                 activeStream?.flush()
                                 activeStream?.close()

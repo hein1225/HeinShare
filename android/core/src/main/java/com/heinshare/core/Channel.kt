@@ -14,8 +14,21 @@ import java.net.SocketTimeoutException
  */
 class Channel(private val socket: Socket, var label: String) {
 
-    private var buffer = ByteArray(0)
+    /**
+     * 读缓冲。
+     *
+     * `buffer` 是底层数组，`bufferLen` 是有效数据长度，`bufferPos` 是已消费位置。
+     * 原来每次 socket 读到一块数据都 `new ByteArray(old.size + got)` 再整体拷贝一遍，
+     * 缓冲里残留 64KB 时每读一块就要搬 64KB，1GB 文件能搬出几百 MB 的无用拷贝。
+     * 现在改成「容量按需增长、内容原地追加」，读进来的字节只搬一次。
+     */
+    private var buffer = ByteArray(INITIAL_BUFFER)
+    private var bufferLen = 0
     private var bufferPos = 0
+
+    /** 复用的临时读缓冲，避免每次 read 都 new。 */
+    private val tmp = ByteArray(65536)
+
     private var closed = false
 
     val peerAddress: String get() = socket.remoteSocketAddress?.toString() ?: ""
@@ -46,7 +59,7 @@ class Channel(private val socket: Socket, var label: String) {
 
     fun isClosed(): Boolean = closed || socket.isClosed
 
-    private fun buffered(): Int = buffer.size - bufferPos
+    private fun buffered(): Int = bufferLen - bufferPos
 
     private fun peek(n: Int): ByteArray {
         if (buffered() >= n) return buffer.copyOfRange(bufferPos, bufferPos + n)
@@ -55,11 +68,14 @@ class Channel(private val socket: Socket, var label: String) {
 
     private fun consume(n: Int) {
         bufferPos += n
-        if (bufferPos == buffer.size) {
-            buffer = ByteArray(0)
+        if (bufferPos == bufferLen) {
+            bufferLen = 0
             bufferPos = 0
         } else if (bufferPos > 64 * 1024) {
-            buffer = buffer.copyOfRange(bufferPos, buffer.size)
+            // 把残留数据搬到头部，避免缓冲区无限增长
+            val remain = bufferLen - bufferPos
+            System.arraycopy(buffer, bufferPos, buffer, 0, remain)
+            bufferLen = remain
             bufferPos = 0
         }
     }
@@ -81,7 +97,6 @@ class Channel(private val socket: Socket, var label: String) {
             try {
                 socket.soTimeout = remain
             } catch (_: Exception) {}
-            val tmp = ByteArray(65536)
             val got = try {
                 input.read(tmp)
             } catch (e: SocketTimeoutException) {
@@ -92,11 +107,17 @@ class Channel(private val socket: Socket, var label: String) {
                 return false
             }
             readTotal += got
-            val old = buffer
-            val merged = ByteArray(old.size + got)
-            System.arraycopy(old, 0, merged, 0, old.size)
-            System.arraycopy(tmp, 0, merged, old.size, got)
-            buffer = merged
+            // 容量不够就按需增长（翻倍），然后把新数据追加到尾部
+            val need = bufferLen + got
+            if (buffer.size < need) {
+                var cap = if (buffer.isEmpty()) INITIAL_BUFFER else buffer.size
+                while (cap < need) cap *= 2
+                val bigger = ByteArray(cap)
+                System.arraycopy(buffer, 0, bigger, 0, bufferLen)
+                buffer = bigger
+            }
+            System.arraycopy(tmp, 0, buffer, bufferLen, got)
+            bufferLen += got
         }
         return true
     }
@@ -248,11 +269,39 @@ class Channel(private val socket: Socket, var label: String) {
     }
 
     companion object {
+        /**
+         * 读缓冲初始容量。
+         *
+         * 一个 DFile 数据块是 64KB，批量写是 256KB，起始给 256KB，
+         * 绝大多数情况下不会触发扩容。
+         */
+        private const val INITIAL_BUFFER = 256 * 1024
+
+        /**
+         * socket 收发缓冲大小。
+         *
+         * 系统的默认 TCP 缓冲偏小（安卓上常见 16KB~64KB 起步），
+         * 窗口一小就传不满 Wi-Fi 的带宽：内核要在对端确认前把数据都塞进
+         * 发送缓冲 + 接收缓冲，缓冲不够就只能等 ACK，吞吐被卡在几十 MB/s。
+         * 调到 1MB 后长距离（大文件）传输才能稳定跑满百兆以上的局域网带宽。
+         *
+         * 注意：这是**请求值**，内核可能按 `net.core.rmem_max` / `wmem_max` 打折，
+         * 拿不到满 1MB 也不影响功能。
+         */
+        private const val SOCKET_BUFFER = 1024 * 1024
+
+        /** 按需放大 socket 的收发缓冲。 */
+        private fun tuneSocket(socket: Socket) {
+            try { socket.receiveBufferSize = SOCKET_BUFFER } catch (_: Exception) {}
+            try { socket.sendBufferSize = SOCKET_BUFFER } catch (_: Exception) {}
+        }
+
         fun connect(host: String, port: Int, timeoutMs: Int): Channel {
             val socket = Socket()
             socket.connect(InetSocketAddress(host, port), timeoutMs)
             socket.tcpNoDelay = true
             socket.soTimeout = timeoutMs
+            tuneSocket(socket)
             return Channel(socket, "chan")
         }
 
@@ -260,6 +309,7 @@ class Channel(private val socket: Socket, var label: String) {
         fun fromSocket(socket: Socket, label: String): Channel {
             socket.tcpNoDelay = true
             socket.soTimeout = 30000
+            tuneSocket(socket)
             return Channel(socket, label)
         }
     }

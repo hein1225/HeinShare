@@ -17,9 +17,10 @@ SCREENS = [
     ("s-home-list", "02-首页-扫到设备"),
     ("s-send", "03-正在发送"),
     ("s-recv", "04-接收确认"),
-    ("s-recv-done", "05-接收完成"),
-    ("s-records", "06-传输记录"),
-    ("s-settings", "07-设置"),
+    ("s-recv-running", "05-接收中"),
+    ("s-recv-done", "06-接收完成"),
+    ("s-records", "07-传输记录"),
+    ("s-settings", "08-设置"),
 ]
 
 

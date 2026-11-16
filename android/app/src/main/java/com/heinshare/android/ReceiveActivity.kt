@@ -29,6 +29,9 @@ class ReceiveActivity : AppCompatActivity() {
     /** 当前页面对应的待确认请求，用来判断「是不是换了一个新请求」。 */
     private var currentRequest: ShareHub.Incoming? = null
 
+    /** 滑动窗口速率计：实时显示当前接收速率。 */
+    private val speedMeter = SpeedMeter()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityReceiveBinding.inflate(layoutInflater)
@@ -131,6 +134,12 @@ class ReceiveActivity : AppCompatActivity() {
                 binding.recvProgressText.text = "$pct%"
                 binding.recvStatus.text =
                     getString(R.string.recv_progress_fmt, Fmt.size(received), Fmt.size(total))
+                // 实时速度：滑动窗口 3 秒，读写两端都能实时看到当前速率
+                val speed = speedMeter.update(received)
+                binding.recvSpeedText.visibility = if (speed > 0) View.VISIBLE else View.GONE
+                if (speed > 0) {
+                    binding.recvSpeedText.text = "速度 ${Fmt.size(speed)}/s"
+                }
                 // 同时来了一个新的待确认请求：别把按钮藏掉，
                 // 否则用户看不到「接收/拒绝」。
                 if (ShareHub.incoming != null) binding.recvButtons.visibility = View.VISIBLE
@@ -145,6 +154,7 @@ class ReceiveActivity : AppCompatActivity() {
                 // 没在接收：保留确认按钮区，进度面板藏起来
                 binding.recvProgressPanel.visibility = View.GONE
                 binding.recvDoneButton.visibility = View.GONE
+                binding.recvSpeedText.visibility = View.GONE
                 if (ShareHub.incoming != null) binding.recvButtons.visibility = View.VISIBLE
             }
         }

@@ -177,6 +177,20 @@ object Bytes {
         out.write(value and 0xFF)
     }
 
+    /** 往定长数组的指定偏移写 2 字节大端值。 */
+    fun putU16be(buf: ByteArray, offset: Int, value: Int) {
+        buf[offset] = ((value ushr 8) and 0xFF).toByte()
+        buf[offset + 1] = (value and 0xFF).toByte()
+    }
+
+    /** 往定长数组的指定偏移写 4 字节大端值。 */
+    fun putU32be(buf: ByteArray, offset: Int, value: Int) {
+        buf[offset] = ((value ushr 24) and 0xFF).toByte()
+        buf[offset + 1] = ((value ushr 16) and 0xFF).toByte()
+        buf[offset + 2] = ((value ushr 8) and 0xFF).toByte()
+        buf[offset + 3] = (value and 0xFF).toByte()
+    }
+
     fun putU32be(out: ByteArrayOutputStream, value: Int) {
         out.write((value ushr 24) and 0xFF)
         out.write((value ushr 16) and 0xFF)

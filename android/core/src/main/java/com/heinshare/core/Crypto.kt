@@ -132,6 +132,29 @@ object Crypto {
     }
 
     /**
+     * 复用的 AES-GCM Cipher 实例。
+     *
+     * `Cipher.getInstance()` 每次都要走一遍 provider 查找与对象构造，实测单次开销在
+     * 几十微秒量级；数据通道每 64KB 就加密一块，1GB 文件要调 1.6 万次，
+     * 累积起来是几百毫秒到数秒的纯浪费。
+     *
+     * Cipher 对象本身可以重复 init 复用（GCM 的内部状态在 doFinal 后作废，
+     * 下次 init 会重置），所以这里按线程缓存两个实例：
+     *   * 下标 0 —— 用 GCMParameterSpec 的现代写法；
+     *   * 下标 1 —— 用 IvParameterSpec 的老设备兼容写法。
+     */
+    private val gcmCiphers = ThreadLocal.withInitial { arrayOfNulls<Cipher>(2) }
+
+    /** 取（并按需创建）本线程可用的 Cipher；指定 init 方式。 */
+    private fun gcmCipher(init: Int): Cipher {
+        val holder = gcmCiphers.get()
+        holder[init]?.let { return it }
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        holder[init] = cipher
+        return cipher
+    }
+
+    /**
      * 平台 AES-GCM（只支持 96 位 nonce）。
      *
      * 为什么优先用它：手写 GCM 每 16 字节就要 new 一次 `Cipher` 做一次 ECB，
@@ -149,7 +172,7 @@ object Crypto {
         if (nonce.size != 12) return null
         for (init in 0..1) {
             try {
-                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                val cipher = gcmCipher(init)
                 if (init == 0) {
                     cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(128, nonce))
                 } else {
@@ -175,7 +198,7 @@ object Crypto {
         if (nonce.size != 12) return null
         for (init in 0..1) {
             try {
-                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                val cipher = gcmCipher(init)
                 if (init == 0) {
                     cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(128, nonce))
                 } else {

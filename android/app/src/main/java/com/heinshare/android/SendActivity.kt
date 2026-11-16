@@ -41,6 +41,9 @@ class SendActivity : AppCompatActivity() {
     private var startedAt = 0L
     /** 第一个数据字节到达的时刻，用来算平均速度。 */
     private var firstByteAt = 0L
+
+    /** 滑动窗口速率计。 */
+    private val speedMeter = SpeedMeter()
     private var totalBytes = 0L
     private var done = false
     private var sending = false
@@ -147,6 +150,7 @@ class SendActivity : AppCompatActivity() {
     private fun startSend(peer: Discovery.Peer, sources: List<FileSource>) {
         startedAt = System.currentTimeMillis()
         firstByteAt = 0L
+        speedMeter.reset()
         val identity = Identity(File(filesDir, "identity.pem"))
         val s = Sender(
             identity = identity,
@@ -206,19 +210,19 @@ class SendActivity : AppCompatActivity() {
         binding.progressBar.progress = pct
         binding.progressText.text = getString(R.string.send_progress, pct)
 
-        // 用「从第一个字节到现在的平均速度」：
-        // 按最近一次刷新的瞬时速度算，抖动很大（一个数据块 64KB，几个毫秒就走完），
-        // 界面上会一会儿几 MB/s 一会儿几十 KB/s，看着像坏了。
+        // 用「最近 3 秒的滑动窗口平均速度」：
+        //  * 全程平均速度在起步阶段被握手延迟拖低，长时间不动；
+        //  * 只看最后一次瞬时速度又会剧烈抖动（一个数据块 64KB，几毫秒就走完）。
         val now = System.currentTimeMillis()
-        if (firstByteAt == 0L) firstByteAt = now
-        val dt = (now - firstByteAt) / 1000.0
-        if (dt > 0.3) {
-            val speed = sent / dt
-            binding.speedText.text = "速度 ${Fmt.size(speed.toLong())}/s"
-            if (speed > 0 && total > sent) {
+        val speed = speedMeter.update(sent, now)
+        if (speed > 0) {
+            binding.speedText.text = "速度 ${Fmt.size(speed)}/s"
+            if (total > sent) {
                 val remain = (total - sent) / speed
-                binding.etaText.text = "预计 ${remain.toInt()} 秒"
+                binding.etaText.text = "预计 ${remain} 秒"
             }
+        } else if (firstByteAt == 0L) {
+            firstByteAt = now
         }
     }
 

@@ -321,14 +321,14 @@ object Protocol {
     fun assembleDfilePacket(kind: Int, flags: Int, session: Int, transaction: Int, payload: ByteArray): ByteArray {
         require(kind in 1..31) { "非法 DFile kind=$kind" }
         require(payload.size <= 65535) { "DFile 载荷过大" }
-        val out = ByteArrayOutputStream()
-        out.write(kind)
-        out.write(flags)
-        Bytes.putU16be(out, session)
-        Bytes.putU16be(out, transaction)
-        Bytes.putU16be(out, payload.size)
-        out.write(payload)
-        return out.toByteArray()
+        val out = ByteArray(8 + payload.size)
+        out[0] = kind.toByte()
+        out[1] = flags.toByte()
+        Bytes.putU16be(out, 2, session)
+        Bytes.putU16be(out, 4, transaction)
+        Bytes.putU16be(out, 6, payload.size)
+        System.arraycopy(payload, 0, out, 8, payload.size)
+        return out
     }
 
     data class DfileHeader(val kind: Int, val flags: Int, val session: Int, val transaction: Int, val size: Int)
@@ -393,6 +393,17 @@ object Protocol {
         return plain.copyOfRange(8, plain.size)
     }
 
+    /**
+     * 构造一个 DFile 数据块（kind=4）。
+     *
+     * 性能要点：数据通道每 64KB 一块，1GB 文件要构造 1.6 万次。
+     * 原来的写法用 ByteArrayOutputStream 层层拼装（plain → payload → packet），
+     * 每次都把整个 64KB 反复拷贝 4~5 遍，1GB 文件就是 5GB 以上的纯内存搬运，
+     * 在移动端上会明显拖慢速度并制造 GC 压力。
+     *
+     * 现在改成「一次算准长度、精确分配、直接写位」：
+     * 每个块只有 3 次分配（明文、密文、最终包），没有中间扩容拷贝。
+     */
     fun buildDataBlock(
         aead: Aead,
         key: ByteArray,
@@ -401,23 +412,42 @@ object Protocol {
         flags: Int,
         fileId: Int,
         trans: Int
+    ): ByteArray = buildDataBlock(aead, key, content, 0, content.size, sequence, flags, fileId, trans)
+
+    /** 同上，但直接从缓冲区的 [offset, offset+len) 取内容，省掉一次整块拷贝。 */
+    fun buildDataBlock(
+        aead: Aead,
+        key: ByteArray,
+        buf: ByteArray,
+        offset: Int,
+        len: Int,
+        sequence: Int,
+        flags: Int,
+        fileId: Int,
+        trans: Int
     ): ByteArray {
-        require(content.isNotEmpty() && content.size <= DFILE_MAX_CONTENT) { "数据块长度非法" }
+        require(len > 0 && len <= DFILE_MAX_CONTENT) { "数据块长度非法" }
         require(flags == 0 || flags == 1 || flags == 3) { "数据块 flags 非法" }
         require(fileId != 0) { "fileId 不能为 0" }
         val nonce = Crypto.randomBytes(12)
-        val plain = ByteArrayOutputStream()
-        Bytes.putU16be(plain, fileId)
-        Bytes.putU32be(plain, sequence)
-        Bytes.putU16be(plain, trans)
-        plain.write(content)
-        val sealed = aead.seal(key, nonce, plain.toByteArray())
-        val payload = ByteArrayOutputStream()
-        Bytes.putU16be(payload, fileId)
-        Bytes.putU32be(payload, sequence)
-        payload.write(sealed)
-        payload.write(nonce)
-        return assembleDfilePacket(4, flags, 0, trans, payload.toByteArray())
+
+        // 明文：fileId(2) + sequence(4) + trans(2) + 内容
+        val plain = ByteArray(8 + len)
+        Bytes.putU16be(plain, 0, fileId)
+        Bytes.putU32be(plain, 2, sequence)
+        Bytes.putU16be(plain, 6, trans)
+        System.arraycopy(buf, offset, plain, 8, len)
+
+        val sealed = aead.seal(key, nonce, plain)
+
+        // 载荷：fileId(2) + sequence(4) + 密文(含 tag) + nonce(12)
+        val payload = ByteArray(6 + sealed.size + 12)
+        Bytes.putU16be(payload, 0, fileId)
+        Bytes.putU32be(payload, 2, sequence)
+        System.arraycopy(sealed, 0, payload, 6, sealed.size)
+        System.arraycopy(nonce, 0, payload, 6 + sealed.size, 12)
+
+        return assembleDfilePacket(4, flags, 0, trans, payload)
     }
 
     /** 返回 (fileId, sequence, content)。 */

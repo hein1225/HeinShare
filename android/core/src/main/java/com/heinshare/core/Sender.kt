@@ -701,8 +701,10 @@ class Sender(
         var sequence = 0
         var offset = 0L
         var written = 0L
-        val batch = java.io.ByteArrayOutputStream()
-        var batchContent = 0L
+        // 批量缓冲：自己管数组，避免 ByteArrayOutputStream 每次扩容时的整块拷贝。
+        // 512KB 批量 = 一次 write 系统调用能推 8 个数据块，系统调用次数降到 1/8。
+        var batchBuf = ByteArray(BATCH_SIZE)
+        var batchLen = 0
         val buffer = ByteArray(chunk)
 
         file.openInput().use { input ->
@@ -717,9 +719,14 @@ class Sender(
                 if (filled == 0) break
                 offset += filled
                 val flag = if (offset >= file.size) 3 else if (sequence == 0) 0 else 1
-                val frame = Protocol.buildDataBlock(aead, key, buffer.copyOf(filled), sequence, flag, fileId, trans)
-                batch.write(frame)
-                batchContent += filled
+                // 直接从缓冲区的有效区间取内容，省掉一次 64KB 的整块拷贝
+                val frame = Protocol.buildDataBlock(aead, key, buffer, 0, filled, sequence, flag, fileId, trans)
+                if (batchLen + frame.size > batchBuf.size) {
+                    chan.transmit(batchBuf.copyOf(batchLen))
+                    batchLen = 0
+                }
+                System.arraycopy(frame, 0, batchBuf, batchLen, frame.size)
+                batchLen += frame.size
                 written += filled
                 if (written > 0) sentAny = true
                 // 进度回调要节流：加解密提速后一个数据块只要几毫秒，
@@ -730,10 +737,9 @@ class Sender(
                     progress(written, total)
                 }
                 var flushed = false
-                if (batch.size() >= 256 * 1024) {
-                    chan.transmit(batch.toByteArray())
-                    batch.reset()
-                    batchContent = 0
+                if (batchLen >= BATCH_SIZE) {
+                    chan.transmit(batchBuf.copyOf(batchLen))
+                    batchLen = 0
                     flushed = true
                 }
                 sequence++
@@ -744,7 +750,7 @@ class Sender(
                 if (offset >= file.size) break
             }
         }
-        if (batch.size() > 0) chan.transmit(batch.toByteArray())
+        if (batchLen > 0) chan.transmit(batchBuf.copyOf(batchLen))
         drainFileReplies(chan, key, aead, done)
         lastProgressAt = 0L
         progress(written, total)
@@ -1044,6 +1050,14 @@ class Sender(
     companion object {
         /** 最多重试次数（与 Rust 版 MAX_RETRY 一致）。 */
         private const val MAX_RETRY = 2
+
+        /**
+         * 一次 write 出去的批量大小。
+         *
+         * 64KB 一个数据块，逐块 write 会让系统调用次数和 TCP 分段数都暴涨，
+         * 512KB 批量能把 write 次数压到 1/8，内核也能一次推更大的窗口。
+         */
+        private const val BATCH_SIZE = 512 * 1024
 
         private val GALLERY_EXTENSIONS = setOf(
             "jpg", "jpeg", "png", "gif", "webp", "bmp", "heic", "heif", "dng", "tif", "tiff", "avif",
