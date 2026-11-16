@@ -536,6 +536,9 @@ class HeinshareService : Service() {
                 ShareHub.progressChanged()
             }
         )
+        // 本次连接对应的待确认请求（认证探测连接没有请求，为 null）。
+        // 放到 try 外面，finally 里才能按对象比对后精确清理。
+        var request: ShareHub.Incoming? = null
         try {
             ShareHub.log("收到来自 $peer 的连接")
             val session = receiver.acceptConnection(control, true, 25000)
@@ -544,14 +547,19 @@ class HeinshareService : Service() {
             // 设备名 / 设备 id：优先用发现阶段记住的对端（平时不扫描，靠这个记住的）
             val known = discovery?.seenPeerFor(host)
             val name = known?.name ?: peer
-            val request = ShareHub.Incoming(name, peer, session, control)
-            ShareHub.incoming = request
+            val req = ShareHub.Incoming(name, peer, session, control)
+            request = req
+            ShareHub.incoming = req
             ShareHub.incomingPeerName = name
+            // 新请求到达：把上一次的「已完成」态清掉，
+            // 否则接收页还停在完成面板，新请求既没提示也点不了「接收」。
+            ShareHub.incomingRequestStarted()
             ShareHub.incomingChanged()
             ShareHub.log("等待确认来自 $name 的分享请求")
-            val decided = request.await(60_000)
-            ShareHub.incoming = null
-            ShareHub.incomingChanged()
+            val decided = req.await(60_000)
+            // 只清「还是这一个」的请求：华为的认证探测连接同时结束时，
+            // 不能把正在等确认的请求顺手抹掉。
+            ShareHub.clearIncoming(req)
             if (!decided) {
                 ShareHub.log("已拒绝该分享")
                 control.close()
@@ -587,8 +595,7 @@ class HeinshareService : Service() {
             // 结束后把状态显式置成 DONE：进度条到 100% 但页面不退出，
             // 就是因为之前只更新了字节数、没有「结束」这个状态。
             ShareHub.receiveFinished(result.saved.size, result.bytes, result.saved)
-            ShareHub.incoming = null
-            ShareHub.incomingChanged()
+            ShareHub.clearIncoming(request)
         } catch (e: Exception) {
             // 华为手机每 10 秒会连一次做账号认证探测，我们的协议栈会忽略那种帧。
             // 这种「连接」不是失败，日志和记录页都不该出现它 —— 用专门的异常类型区分。
@@ -600,7 +607,9 @@ class HeinshareService : Service() {
             }
         } finally {
             ShareHub.busy = false
-            ShareHub.incoming = null
+            // 只清自己那一个请求：认证探测连接结束时不能把别的请求抹掉
+            // （否则第二个文件收不到提示）。
+            ShareHub.clearIncoming(request)
             try { control.close() } catch (_: Exception) {}
             ShareHub.incomingChanged()
             ShareHub.progressChanged()

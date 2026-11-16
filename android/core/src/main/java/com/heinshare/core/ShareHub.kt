@@ -168,6 +168,36 @@ object ShareHub {
     @Volatile var incomingPeerName: String = ""
     @Volatile var busy: Boolean = false
 
+    /**
+     * 清掉待确认请求 —— **只在还是这一个请求时才清**。
+     *
+     * 华为手机每隔几秒就会连一次做账号认证探测，那条连接结束时也会走到这里。
+     * 如果无条件清空，正在等用户确认的分享请求就会被探测连接顺手抹掉，
+     * 表现为「第二个文件收不到提示」。所以必须按请求对象比对。
+     */
+    fun clearIncoming(request: Incoming?) {
+        if (request == null) return
+        if (incoming !== request) return
+        incoming = null
+        incomingChanged()
+    }
+
+    /**
+     * 新的分享请求到达。
+     *
+     * 要把上一次的「已完成」态清掉 —— 否则界面还停在完成面板，
+     * 新请求既没有提示，按钮也被藏起来。
+     */
+    fun incomingRequestStarted() {
+        if (receiveState == ReceiveState.DONE) {
+            receiveState = ReceiveState.IDLE
+            receivedBytes = 0
+            totalBytes = 0
+            lastSaved = ArrayList()
+            progressChanged()
+        }
+    }
+
     /** 前台服务是否在跑（服务启停时更新）。 */
     @Volatile var serviceRunning: Boolean = false
 

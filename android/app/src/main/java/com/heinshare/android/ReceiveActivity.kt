@@ -23,6 +23,12 @@ class ReceiveActivity : AppCompatActivity() {
     /** 完成后的收尾动作只跑一次。 */
     private var finishScheduled = false
 
+    /** 自动关闭的定时任务：新请求到达时要撤销，否则第二个请求的提示刚出现页面就关了。 */
+    private var autoFinish: Runnable? = null
+
+    /** 当前页面对应的待确认请求，用来判断「是不是换了一个新请求」。 */
+    private var currentRequest: ShareHub.Incoming? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityReceiveBinding.inflate(layoutInflater)
@@ -80,6 +86,21 @@ class ReceiveActivity : AppCompatActivity() {
             binding.recvProgressPanel.visibility = View.GONE
             return
         }
+        // 换成了一个新的请求（同一台设备发的第二个文件）：
+        // 撤销上一次的自动关闭，并把界面切回「待确认」，
+        // 否则用户只会看到上一个文件接收完成的弹窗。
+        if (currentRequest !== request) {
+            val isNew = currentRequest != null
+            currentRequest = request
+            cancelAutoFinish()
+            finishScheduled = false
+            if (isNew) {
+                binding.recvProgressPanel.visibility = View.GONE
+                binding.recvDoneButton.visibility = View.GONE
+                binding.recvProgressBar.progress = 0
+                binding.recvProgressText.text = "0%"
+            }
+        }
         val s = request.session
         binding.recvPrompt.text = getString(
             R.string.recv_prompt_fmt,
@@ -101,15 +122,20 @@ class ReceiveActivity : AppCompatActivity() {
         when (state) {
             ShareHub.ReceiveState.RUNNING -> {
                 binding.recvProgressPanel.visibility = View.VISIBLE
-                binding.recvButtons.visibility = View.GONE
                 binding.recvDoneButton.visibility = View.GONE
                 binding.recvProgressBar.progress = pct
                 binding.recvProgressText.text = "$pct%"
                 binding.recvStatus.text =
                     getString(R.string.recv_progress_fmt, Fmt.size(received), Fmt.size(total))
+                // 同时来了一个新的待确认请求：别把按钮藏掉，
+                // 否则用户看不到「接收/拒绝」。
+                if (ShareHub.incoming != null) binding.recvButtons.visibility = View.VISIBLE
             }
 
-            ShareHub.ReceiveState.DONE -> showDone()
+            ShareHub.ReceiveState.DONE ->
+                // 还有待确认的新请求时不要显示完成态：
+                // 那会把「接收/拒绝」按钮藏掉，用户以为没收到。
+                if (ShareHub.incoming == null) showDone()
 
             ShareHub.ReceiveState.IDLE -> {
                 // 没在接收：保留确认按钮区，进度面板藏起来
@@ -137,7 +163,16 @@ class ReceiveActivity : AppCompatActivity() {
         // 3 秒后自动关页（用户已经看到「完成」了，不需要手动点）
         if (!finishScheduled) {
             finishScheduled = true
-            binding.root.postDelayed({ if (!isFinishing) finish() }, 2600)
+            val task = Runnable { if (!isFinishing) finish() }
+            autoFinish = task
+            binding.root.postDelayed(task, 2600)
         }
+    }
+
+    /** 撤销自动关闭：新的分享请求到达时用。 */
+    private fun cancelAutoFinish() {
+        val task = autoFinish ?: return
+        autoFinish = null
+        binding.root.removeCallbacks(task)
     }
 }
