@@ -1,14 +1,14 @@
 name: Build & Release
 
-# 手动触发：填 tag 版本号（不带 v，例如 1.0.0）。
+# 手动触发：填 tag 版本号（不带 v，例如 1.1.0）。
 # 流程：构建 release APK → 打包 → 创建 GitHub Release（自动填写更新日志）→ 上传 APK。
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: '发布版本号（不带 v，例如 1.0.0）'
+        description: '发布版本号（不带 v，例如 1.1.0）'
         required: true
-        default: '1.0.0'
+        default: '1.1.0'
       changelog:
         description: '更新日志（留空则自动根据本次改动生成）'
         required: false

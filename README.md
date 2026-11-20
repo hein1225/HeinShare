@@ -94,7 +94,7 @@
 
 - 启动时**自动检查一次**，**每天只查一次**（记录在本地，当天不再重复）
 - 设置页「**检查更新**」可随时手动检查
-- 更新源是 GitHub 仓库的 **Release**：比较 **tag 版本号**（`1.0.0` 写法，不带 `v`）
+- 更新源是 GitHub 仓库的 **Release**：比较 **tag 版本号**（`1.1.0` 写法，不带 `v`）
 - 发现新版本后弹窗提示，可**直接下载 APK 并调起安装**，也可跳到 Release 页面
 
 ### 关于与仓库
@@ -129,6 +129,10 @@
 界面预览（HTML + 截图）由 `preview/` 目录生成：按 `android/app/src/main/res` 下的真实布局、
 配色、字符串还原，图标由 VectorDrawable 转 SVG，逐屏用无头浏览器截图。
 生成方法见 [`preview/README.md`](preview/README.md)。
+
+### 全部界面
+
+<p align="center"><img src="docs/screenshots/00-总览.png" width="900" alt="全部界面"></p>
 
 ### 首页 · 扫描中
 
@@ -180,7 +184,10 @@
 
 ### 设置
 
-设备名称、连接状态、**可被华为分享扫描**开关、接收目录、版本号、**检查更新**、**项目仓库**（含求 Star 提示）。
+- **设备**：设备名称、连接状态（在线/离线）
+- **华为分享发现**：可被华为分享扫描、对外设备类型（`type 12` 电脑）、分享能力位（`455`）
+- **传输**：**热点直连**（只显示状态，开关在系统设置里）、后台传输、接收目录
+- **版本**：`海因分享 1.1.0`、检查更新、项目仓库（含求 Star 提示）
 
 <p align="center"><img src="docs/screenshots/08-设置.png" width="260" alt="设置"></p>
 
@@ -228,7 +235,7 @@ cd android
 `versionName` 是用户可见版本号（不带 `v`），`versionCode` 是整数递增计数器，
 **只在发布新版本号时 +1**（`1.0.0` → `1`，`1.1.0` → `2`），不使用时间戳，
 这样线上下载的包与本地构建的包可以互相覆盖安装。临时覆盖用
-`-PversionName=1.0.0 -PversionCode=1`。详见
+`-PversionName=1.1.0 -PversionCode=2`。详见
 [`android/构建说明.md`](android/构建说明.md)。
 
 安装后打开 App，首页「开启快传」打开即可对外广播。设备名、接收目录在设置页改。
@@ -237,13 +244,13 @@ cd android
 
 仓库内置 GitHub Actions 工作流 `.github/workflows/release.yml`：
 
-1. 在 **Actions → Build & Release → Run workflow** 里填 **tag 版本号**（不带 `v`，例如 `1.0.0`）；
+1. 在 **Actions → Build & Release → Run workflow** 里填 **tag 版本号**（不带 `v`，例如 `1.1.0`）；
    工作流会校验它与 `android/version.properties` 的 `versionName` 一致，不一致直接失败，
    避免漏改 `versionCode` 导致新包无法覆盖安装
 2. 可选填更新日志；留空则**按本次提交自动生成**
 3. 工作流构建 release APK（签名密钥通过 Secrets `KEYSTORE_BASE64` / `KEYSTORE_PASSWORD` /
    `KEY_ALIAS` / `KEY_PASSWORD` 提供），随后创建 **Release 名为 `HeinShare-<tag>`**（例如
-   `HeinShare-1.0.0`）的发布，并把 APK 作为附件上传
+   `HeinShare-1.1.0`）的发布，并把 APK 作为附件上传
 
 App 的检查更新正是读这个 Release 的 tag 与 APK 附件。
 

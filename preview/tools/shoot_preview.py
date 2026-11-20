@@ -108,8 +108,41 @@ def shoot(session, sid, name):
     return out
 
 
+def shoot_overview(session):
+    """总览页（index.html 整页并排七屏）。"""
+    session.cmd("Page.enable")
+    session.cmd("Emulation.setDeviceMetricsOverride", {
+        "width": 1600, "height": 1000, "deviceScaleFactor": 1, "mobile": False,
+    })
+    session.cmd("Page.navigate", {"url": BASE.replace("/screens/", "/") + "index.html"})
+    time.sleep(2.0)
+    data = session.cmd("Page.captureScreenshot", {
+        "format": "png", "captureBeyondViewport": True,
+    })["data"]
+    out = os.path.join(SHOTS, "00-总览.png")
+    with open(out, "wb") as f:
+        f.write(base64.b64decode(data))
+    return out
+
+
 def main():
     os.makedirs(SHOTS, exist_ok=True)
+    # 总览页
+    tab = new_tab(BASE.replace("/screens/", "/") + "index.html")
+    tid = tab["id"]
+    try:
+        s = Session(tab["webSocketDebuggerUrl"])
+        try:
+            out = shoot_overview(s)
+            print(f"[ok]   {os.path.basename(out)}  {os.path.getsize(out)} bytes")
+        finally:
+            s.close()
+    except Exception as e:  # noqa: BLE001
+        print(f"[fail] overview: {e}", file=sys.stderr)
+    finally:
+        close_tab(tid)
+        time.sleep(0.3)
+
     for sid, name in SCREENS:
         tab = new_tab(BASE + sid)
         tid = tab["id"]
