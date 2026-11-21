@@ -21,3 +21,7 @@ android/keystore/
 
 # ── 本地资料（设计稿、HTML 原型、Windows 版源码参考、工作日志），不推送 ──
 /plan/
+
+# Python 缓存
+__pycache__/
+*.pyc
