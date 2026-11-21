@@ -1,7 +1,10 @@
 name: Build & Release
 
 # 手动触发：填 tag 版本号（不带 v，例如 1.1.0）。
-# 流程：构建 release APK → 打包 → 创建 GitHub Release（自动填写更新日志）→ 上传 APK。
+# 流程分两步，且严格串行——先「构建」，构建成功才会进入「发布」：
+#   1) build：构建并签名 release APK，产出 artifact（含 APK 与更新日志）。
+#   2) release：依赖 build 成功，下载 artifact，创建/覆盖 GitHub Release 并上传 APK。
+# 任一构建步骤失败，发布 job 不会运行，不会产生半成品 Release。
 on:
   workflow_dispatch:
     inputs:
@@ -18,8 +21,9 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: 构建并发布
+  # ───────────────────────────── 第一步：构建 ─────────────────────────────
+  build:
+    name: 构建 APK
     runs-on: ubuntu-latest
 
     steps:
@@ -111,6 +115,7 @@ jobs:
             $KS_ARGS
 
       - name: 收集 APK
+        id: collect
         run: |
           set -euo pipefail
           TAG="${{ inputs.tag }}"
@@ -123,28 +128,62 @@ jobs:
           ls -l dist
 
       - name: 生成更新日志
-        id: notes
         run: |
           set -euo pipefail
           TAG="${{ inputs.tag }}"
           INPUT="${{ inputs.changelog }}"
           if [ -n "$INPUT" ]; then
-            echo "body<<EOF" >> "$GITHUB_OUTPUT"
-            echo "$INPUT" >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
+            printf '%s\n' "$INPUT" > dist/notes.md
           else
             PREV=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
             if [ -n "$PREV" ]; then
-              BODY=$(git log --pretty=format:'- %s' "$PREV..HEAD" | head -n 50)
+              BODY=$(git log --pretty=format:'- %s' "${PREV}..HEAD" | head -n 50)
             else
               BODY=$(git log --pretty=format:'- %s' -n 20)
             fi
-            echo "body<<EOF" >> "$GITHUB_OUTPUT"
-            echo "版本 $TAG" >> "$GITHUB_OUTPUT"
-            echo "" >> "$GITHUB_OUTPUT"
-            echo "$BODY" >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
+            {
+              echo "版本 $TAG"
+              echo ""
+              echo "$BODY"
+            } > dist/notes.md
           fi
+          echo "----- notes.md -----"; cat dist/notes.md
+
+      # 构建产物整体打包：APK + notes.md，作为发布 job 的输入。
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-payload
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  # ───────────────────────────── 第二步：发布 ─────────────────────────────
+  # 仅当上面的 build job 成功才会执行；build 失败这里被自动跳过，不会发布。
+  release:
+    name: 发布 Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: release-payload
+          path: dist
+
+      - name: 校验产物完整
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          APK="dist/HeinShare-android-${TAG}.apk"
+          if [ ! -f "$APK" ]; then
+            echo "::error::构建产物缺少 $APK，拒绝发布"; exit 1
+          fi
+          if [ ! -f dist/notes.md ]; then
+            echo "::error::构建产物缺少 notes.md，拒绝发布"; exit 1
+          fi
+          ls -l dist
 
       - name: 创建 Release 并上传 APK
         env:
@@ -152,23 +191,19 @@ jobs:
           TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
-          NOTES_FILE="$RUNNER_TEMP/notes.md"
-          printf '%s\n' "${{ steps.notes.outputs.body }}" > "$NOTES_FILE"
+          APK="dist/HeinShare-android-${TAG}.apk"
           # tag 不带 v：直接用输入值
           # Release 已存在时改为覆盖上传，保证同名 tag 的资产能被新构建替换
           if gh release view "$TAG" --repo hein1225/HeinShare >/dev/null 2>&1; then
-            gh release upload "$TAG" \
-              "dist/HeinShare-android-${TAG}.apk" \
-              --clobber \
-              --repo hein1225/HeinShare
+            gh release upload "$TAG" "$APK" --clobber --repo hein1225/HeinShare
             gh release edit "$TAG" \
               --title "HeinShare-${TAG}" \
-              --notes-file "$NOTES_FILE" \
+              --notes-file dist/notes.md \
               --repo hein1225/HeinShare
           else
             gh release create "$TAG" \
               --title "HeinShare-${TAG}" \
-              --notes-file "$NOTES_FILE" \
+              --notes-file dist/notes.md \
               --repo hein1225/HeinShare \
-              "dist/HeinShare-android-${TAG}.apk"
+              "$APK"
           fi
